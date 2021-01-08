@@ -1,0 +1,57 @@
+/**
+ * router/index.js
+ *
+ * vue-router documentation: https://router.vuejs.org/
+ */
+
+// Imports
+import Vue from 'vue'
+import Router from 'vue-router'
+
+Vue.use(Router)
+
+const router = new Router({
+  mode: 'history',
+  base: process.env.BASE_URL,
+  scrollBehavior: (to, from, savedPosition) => {
+    if (to.hash) return { selector: to.hash }
+    if (savedPosition) return savedPosition
+
+    return { x: 0, y: 0 }
+  },
+  routes: [
+    {
+      path: '/',
+      // Layouts allow you to define different
+      // structures for different view
+      component: () => import('@/layouts/drawer/Index.vue'),
+      children: [
+        {
+          path: '',
+          name: 'Home',
+          components: {
+            default: () => import('@/views/home/Index.vue'),
+            navDrawer: () => import('@/views/drawer/Index.vue')
+          }
+        },
+        {
+          path: 'expenses',
+          name: 'Expenses',
+          components: {
+            navDrawer: () => import('@/views/drawer/Index.vue')
+          }
+        },
+        {
+          path: 'clients',
+          name: 'Home',
+          components: {
+            default: () => import('@/views/clients/Index.vue'),
+            navDrawer: () => import('@/views/drawer/Index.vue')
+          }
+        }
+      ]
+    }
+  ]
+})
+
+export default router

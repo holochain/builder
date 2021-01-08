@@ -1,0 +1,14 @@
+environment_path: ./devConductor/files
+use_dangerous_test_keystore: true
+signing_service_uri: ws://localhost:9001
+encryption_service_uri: ws://localhost:9002
+decryption_service_uri: ws://localhost:9003
+passphrase_service:
+    type: cmd
+dpki:
+    instance_id: some_id
+    init_params: some_params
+admin_interfaces:
+    - driver:
+        type: websocket
+        port: 26970

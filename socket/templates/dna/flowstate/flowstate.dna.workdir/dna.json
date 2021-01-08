@@ -1,0 +1,10 @@
+{
+  "name": "flowstate",
+  "uuid": "",
+  "properties": null,
+  "zomes": {
+    "flowstate": {
+      "wasm_path": "../target/wasm32-unknown-unknown/release/flowstate.wasm"
+    }
+  }
+}

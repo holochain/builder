@@ -1,0 +1,14 @@
+{
+  "name": "socket",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "socket": "nodemon socket.js"
+  },
+  "dependencies": {
+    "@holochain/conductor-api": "^0.0.1-dev.10",
+    "nodemon": "^2.0.6",
+    "socket.io": "^2.3.0"
+  }
+}
