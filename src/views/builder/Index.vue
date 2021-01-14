@@ -285,17 +285,7 @@
                     >
                   </v-tab>
                   <v-tab-item key="lintTab">
-                    <div id="stdOutMessages" class="std-container">
-                      <ul class="pb-10 pl-1">
-                        <li
-                          v-for="(message, i) in stdOutMessages"
-                          :key="`${message}${i}`"
-                          class="message"
-                        >
-                          <message :message="message" :key="i" />
-                        </li>
-                      </ul>
-                    </div>
+                    <messages :messages="stdOutMessages" />
                   </v-tab-item>
                   <v-tab>
                     App Server
@@ -307,17 +297,7 @@
                     </v-icon>
                   </v-tab>
                   <v-tab-item key="appServerTab">
-                    <div id="appServerMessages" class="std-container">
-                      <ul class="pb-10 pl-1">
-                        <li
-                          v-for="(message, i) in appServerMessages"
-                          :key="i"
-                          class="message"
-                        >
-                          <message :message="message" :key="i" />
-                        </li>
-                      </ul>
-                    </div>
+                    <messages :messages="appServerMessages" />
                   </v-tab-item>
                   <v-tab>
                     DNA Tests
@@ -330,17 +310,7 @@
                     </v-avatar>
                   </v-tab>
                   <v-tab-item key="testDnaTab">
-                    <div id="test-dna-messages" class="std-container">
-                      <ul class="pb-10 pl-1">
-                        <li
-                          v-for="(message, i) in testDnaMessages"
-                          :key="i"
-                          class="message"
-                        >
-                          <message :message="message" :key="i" />
-                        </li>
-                      </ul>
-                    </div>
+                    <messages :messages="testDnaMessages" />
                   </v-tab-item>
                   <v-tab>
                     Dev Conductor
@@ -352,17 +322,7 @@
                     </v-icon>
                   </v-tab>
                   <v-tab-item key="conductorTab">
-                    <div id="conductorMessages" class="std-container">
-                      <ul class="pb-10 pl-1">
-                        <li
-                          v-for="(message, i) in conductorMessages"
-                          :key="`${message}${i}`"
-                          class="message"
-                        >
-                          <message :message="message" :key="i" />
-                        </li>
-                      </ul>
-                    </div>
+                    <messages :messages="conductorMessages" />
                   </v-tab-item>
                 </v-tabs>
               </v-col>
@@ -581,7 +541,7 @@ export default {
     Agent: () => import('@/components/Agent.vue'),
     FileTree: () => import('@/components/FileTree.vue'),
     Editor: () => import('@/components/Editor.vue'),
-    Message: () => import('@/components/Message.vue'),
+    Messages: () => import('@/components/Messages.vue'),
     DnaTemplate: () => import('@/components/DnaTemplate.vue'),
     WebPartTemplate: () => import('@/components/WebPartTemplate.vue'),
     TestAgents: () => import('@/components/TestAgents.vue'),
@@ -658,6 +618,7 @@ export default {
       'recurseApplicationFiles',
       'lintFiles',
       'startWebServer',
+      'stopWebServer',
       'startConductor',
       'stopConductor',
       'resetConductor',
