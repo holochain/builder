@@ -23,7 +23,7 @@
     </v-toolbar>
     <v-row class="pl-2">
       <v-col
-        v-for="agent in agents"
+        v-for="(agent, index) in agents"
         :key="agent.uuid"
         cols="12"
         sm="4"
@@ -34,6 +34,7 @@
           :key="agent.uuid"
           :agent="agent"
           :details="details"
+          :index="index"
           @open-agent-detail="openAgentDetail"
           @delete-agent="showDeleteDialog"
         >
@@ -136,6 +137,9 @@ export default {
       deleteDialog: false
     }
   },
+  computed: {
+    ...mapState('builder', ['conductor', 'agents'])
+  },
   methods: {
     ...mapActions('builder', ['fetchAgents', 'saveAgent', 'deleteAgent']),
     openAgentDetail (agent) {
@@ -177,9 +181,6 @@ export default {
     cancelDelete () {
       this.deleteDialog = false
     }
-  },
-  computed: {
-    ...mapState('builder', ['conductor', 'agents'])
   },
   mounted () {
     this.fetchAgents(this.conductor)

@@ -6,7 +6,7 @@
       open-on-click
       dense
       return-object
-      :key="refreshTreeKey"
+      :key="treeRefreshKey"
       :active.sync="active"
       :open.sync="open"
       :items="treeItems"
@@ -16,7 +16,7 @@
         <v-icon color="primary darken-4"
           v-if="item.type === 'dir'"
           @contextmenu="show($event, item)"
-          @click.stop="
+          @click="
             listDirectory(item);
             $emit('dir-selected', item);
           "
@@ -89,8 +89,6 @@ export default {
   components: {},
   data () {
     return {
-      refreshTreeKey: 0,
-      initiallyOpen: ['ledger'],
       open: [],
       active: [],
       tree: [],
@@ -109,6 +107,8 @@ export default {
         ts: 'mdi-language-typescript',
         json: 'mdi-code-json',
         pdf: 'mdi-file-pdf',
+        ico: 'mdi-file-image',
+        svg: 'mdi-svg',
         png: 'mdi-file-image',
         jpg: 'mdi-file-image',
         jpeg: 'mdi-file-image',
@@ -137,7 +137,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('builder', ['db', 'treeItems', 'applicationName'])
+    ...mapState('builder', ['db', 'treeItems', 'treeRefreshKey', 'applicationName'])
   },
   methods: {
     ...mapActions('builder', ['openFile', 'getTreeRootFolders']),
@@ -180,7 +180,11 @@ export default {
   },
   mounted () {
     this.getTreeRootFolders()
-    // this.open = localStorage.getItem('openTreeNodes')
+  },
+  watch: {
+    treeRefreshKey () {
+      this.getTreeRootFolders()
+    }
   }
 }
 </script>

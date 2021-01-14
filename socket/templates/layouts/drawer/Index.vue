@@ -7,11 +7,11 @@
 
 <script>
 export default {
-  name: "DefaultLayout",
+  name: 'DefaultLayout',
 
   components: {
-    LeftDrawer: () => import("./Drawer"),
-    DefaultView: () => import("./View")
+    LeftDrawer: () => import('./Drawer'),
+    DefaultView: () => import('./View')
   }
-};
+}
 </script>

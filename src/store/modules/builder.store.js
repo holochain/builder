@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from 'uuid'
 import * as base64 from 'byte-base64'
 import Dexie from 'dexie'
 import io from 'socket.io-client'
+import { AdminWebsocket } from '@holochain/conductor-api'
 
 const SOCKET_URL = 'ws://localhost:45678'
+const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26972'
 
 Vue.use(Vuex)
 
@@ -13,26 +15,19 @@ export default {
   namespaced: true,
   state: {
     socket: {},
+    hcAdmin: {},
+    hcClient: {},
+    appInterface: {},
     applicationName: '',
     refreshKey: 0,
+    treeRefreshKey: 0,
     stdOutMessages: [],
     appServerMessages: [],
-    socketServerMessages: [],
+    conductorMessages: [],
     testDnaMessages: [],
-    demoMessages: [
-      'STDOUT: ✨  Creating project in /Users/philipbeadle/holochain-2020/conductor-admin/server/dev-apps/chat.',
-      'STDOUT: ⚙️  Installing CLI plugins. This might take a while...',
-      'STDOUT: info No lockfile found.',
-      'STDOUT: [1/4] Resolving packages...',
-      'STDOUT: ✨  Creating project in /Users/philipbeadle/holochain-2020/conductor-admin/server/dev-apps/chat.',
-      'STDOUT: ⚙️  Installing CLI plugins. This might take a while...',
-      'STDOUT: info No lockfile found.',
-      'STDOUT: ✨  Creating project in /Users/philipbeadle/holochain-2020/conductor-admin/server/dev-apps/chat.',
-      'STDOUT: ⚙️  Installing CLI plugins. This might take a while...',
-      'STDOUT: info No lockfile found.'
-    ],
-    showRefresh: false,
+    finished: false,
     treeItems: [],
+    dnaPaths: [],
     openFiles: [],
     selectedTab: -1,
     openFile: {},
@@ -49,49 +44,66 @@ export default {
     }
   },
   actions: {
-    initialise ({ state, commit }) {
-      state.db = new Dexie('holochain')
+    initialise ({ state, commit, dispatch }) {
+      state.db = new Dexie('builder')
       state.db.version(1).stores({
         agents: 'uuid,name,parent',
         files: '[parentDir+name],parentDir'
       })
       state.socket = io(SOCKET_URL)
 
-      state.socket.on('CREATE_APLICATION_STDOUT', data => {
-        console.log('CREATE_APLICATION_STDOUT', data)
+      state.socket.on('TERMINAL_STDOUT', data => {
+        console.log('TERMINAL_STDOUT', data)
         commit('stdOutMessage', data)
       })
-      state.socket.on('CREATE_APLICATION_ERROR', data => {
-        console.log('CREATE_APLICATION_ERROR', data)
+      state.socket.on('TERMINAL_ERROR', data => {
+        console.log('TERMINAL_ERROR', data)
         commit('stdOutMessage', data)
       })
-      state.socket.on('CREATE_APLICATION_EXIT', data => {
-        console.log('CREATE_APLICATION_EXIT', data)
-        commit('showRefresh')
+      state.socket.on('TERMINAL_EXIT', data => {
+        console.log('TERMINAL_EXIT', data)
+        commit('stdOutMessage', data)
       })
+
+      // state.socket.on('ADD_MODULE_STDOUT', data => {
+      //   console.log('ADD_MODULE_STDOUT', data)
+      //   commit('stdOutMessage', data)
+      // })
+      // state.socket.on('ADD_MODULE_ERROR', data => {
+      //   console.log('ADD_MODULE_ERROR', data)
+      //   commit('stdOutMessage', data)
+      // })
+      // state.socket.on('ADD_MODULE_EXIT', data => {
+      //   console.log('ADD_MODULE_EXIT', data)
+      //   commit('socketFinished', true)
+      // })
+
       state.socket.on('RECURSE_APPLICATION_FILES', file => {
-        console.log('RECURSE_APPLICATION_FILES', file)
+        // console.log('RECURSE_APPLICATION_FILES', file)
         state.db.files.put(file)
       })
       state.socket.on('RECURSE_APPLICATION_FILES_ERROR', data => {
         console.log('RECURSE_APPLICATION_FILES_ERROR', data)
       })
-      state.socket.on('RECURSE_APPLICATION_FILES_EXIT', data => {
-        console.log('RECURSE_APPLICATION_FILES_EXIT', data)
+      state.socket.on('RECURSE_APPLICATION_FILES_EXIT', () => {
+        // console.log('RECURSE_APPLICATION_FILES_EXIT')
+        commit('incrementTreeRefreshKey')
+        dispatch('getDnaPaths')
       })
 
-      state.socket.on('LINT_FILES_STDOUT', data => {
-        console.log('LINT_FILES_STDOUT', data)
-        commit('stdOutMessage', data)
-      })
-      state.socket.on('LINT_FILES_ERROR', data => {
-        console.log('LINT_FILES_ERROR', data)
-        commit('stdOutMessage', data)
-      })
-      state.socket.on('LINT_FILES_EXIT', data => {
-        console.log('LINT_FILES_EXIT', data)
-        commit('stdOutMessage', 'LINT_FILES_EXIT')
-      })
+      // state.socket.on('LINT_FILES_STDOUT', data => {
+      //   console.log('LINT_FILES_STDOUT', data)
+      //   commit('stdOutMessage', data)
+      // })
+      // state.socket.on('LINT_FILES_ERROR', data => {
+      //   console.log('LINT_FILES_ERROR', data)
+      //   commit('stdOutMessage', data)
+      // })
+      // state.socket.on('LINT_FILES_EXIT', data => {
+      //   console.log('LINT_FILES_EXIT', data)
+      //   commit('stdOutMessage', 'LINT_FILES_EXIT')
+      //   commit('socketFinished', true)
+      // })
 
       state.socket.on('SERVE_WEB_APP_STDOUT', data => {
         console.log('SERVE_WEB_APP_STDOUT', data)
@@ -106,17 +118,25 @@ export default {
         commit('appServerMessage', 'SERVE_WEB_APP_EXIT')
       })
 
-      state.socket.on('SOCKET_SERVER_STDOUT', data => {
-        console.log('SOCKET_SERVER_STDOUT', data)
-        commit('socketServerMessage', data)
+      state.socket.on('CONDUCTOR_STDOUT', data => {
+        console.log('CONDUCTOR_STDOUT', data)
+        commit('conductorMessage', data)
+        if (data.includes('Conductor ready')) {
+          AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_URL, 10000).then(admin => {
+            state.hcAdmin = admin
+            state.hcAdmin.attachAppInterface({ port: 0 }).then(appInterface => {
+              state.hcClient.appInterface = appInterface
+            })
+          })
+        }
       })
-      state.socket.on('SOCKET_SERVER_ERROR', data => {
-        console.log('SOCKET_SERVER_ERROR', data)
-        commit('socketServerMessage', data)
+      state.socket.on('CONDUCTOR_ERROR', data => {
+        console.log('CONDUCTOR_ERROR', data)
+        commit('conductorMessage', data)
       })
-      state.socket.on('SOCKET_SERVER_EXIT', data => {
-        console.log('SOCKET_SERVER_EXIT', data)
-        commit('socketServerMessage', 'SOCKET_SERVER_EXIT')
+      state.socket.on('CONDUCTOR_EXIT', data => {
+        console.log('CONDUCTOR_EXIT', data)
+        commit('conductorMessage', data)
       })
 
       state.socket.on('TEST_DNA_STDOUT', data => {
@@ -130,6 +150,7 @@ export default {
       state.socket.on('TEST_DNA_EXIT', data => {
         console.log('TEST_DNA_EXIT', data)
         commit('testDnaMessage', 'TEST_DNA_EXIT')
+        commit('socketFinished', true)
       })
     },
     getTreeRootFolders ({ state, commit }) {
@@ -142,6 +163,12 @@ export default {
           return entry
         })
         commit('treeItems', treeItems)
+      })
+    },
+    getDnaPaths ({ state, commit }) {
+      state.db.files.toArray(entries => {
+        const dnaPaths = entries.filter(f => f.parentDir === `/${state.applicationName}/dna/`)
+        commit('dnaPaths', dnaPaths)
       })
     },
     async createDirectory ({ state }, payload) {
@@ -199,15 +226,22 @@ export default {
       //   }
       // )
     },
-    async createApplication ({ state }, payload) {
+    async createApplication ({ state, commit }, payload) {
       const name = payload.name
-      const plugin = payload.plugin
+      const preset = payload.preset
       state.db.files.put({
         parentDir: '/',
         name,
         type: 'dir'
       })
-      state.socket.emit('CREATE_APPLICATION', { name, plugin })
+      commit('setApplicationName', name)
+      state.socket.emit('CREATE_APPLICATION', { name, preset })
+    },
+    async addModule ({ state }, payload) {
+      console.log(payload)
+      const name = payload.name
+      const plugin = payload.plugin
+      state.socket.emit('ADD_MODULE', { name, plugin })
     },
     async recurseApplicationFiles ({ state }, payload) {
       const name = payload.name
@@ -228,36 +262,9 @@ export default {
       })
     },
     async testDna ({ state, commit }, payload) {
-      const name = payload.name
+      const path = payload.path
       commit('clearTestDnaMessages')
-      state.socket.emit('TEST_DNA', { name })
-    },
-    async installDna ({ state, commit }, payload) {
-      const agent = payload.agent
-      state.db.agents.get(agent.uuid).then((agent) => {
-        console.log(agent)
-      })
-      const agentPubKey = await state.hcClient.admin.generateAgentPubKey()
-      agent.agentPubKey = base64.bytesToBase64(agentPubKey)
-      console.log(agentPubKey)
-      console.log(agent.agentPubKey)
-      const APP_ID = uuidv4()
-      const app = await state.hcClient.admin.installApp({
-        app_id: APP_ID,
-        agent_key: agentPubKey,
-        dnas: [
-          {
-            path: '/Users/philipbeadle/holochain-2020/dev-apps/ledger/dna/ledger.dna.gz',
-            nick: 'Ledger'
-          }
-        ]
-      })
-      agent.cellId = base64.bytesToBase64(app.cell_data[0][0][0])
-      console.log(app.cell_data[0][0][0])
-      state.hcClient.admin.activateApp({ app_id: APP_ID })
-      agent.appInterface = await state.hcClient.admin.attachAppInterface({ port: 0 })
-      commit('updateAgent', agent)
-      state.db.agents.put(agent)
+      state.socket.emit('TEST_DNA', { path })
     },
     refreshFiles ({ state, commit }) {
       console.log('refreshFiles')
@@ -273,33 +280,35 @@ export default {
           })
       })
     },
-    openFileEdited ({ state, commit }, payload) {
-      console.log({
-        parentDir: payload.parentDir,
-        name: payload.name
-      })
-      state.db.files
-        .where('[parentDir+name]')
-        .equals([payload.parentDir, payload.name])
-        .first()
-        .then(file =>
-          commit('openFileEdited', payload.content !== file.content)
-        )
-    },
-    async serveWebApp ({ state, commit }, payload) {
+    async startWebServer ({ state, commit }, payload) {
       const name = payload.name
       commit('clearAppServerMessages')
-      state.socket.emit('SERVE_WEB_APP', { name }, success => {
+      state.socket.emit('START_WEB_SERVER', { name }, success => {
         console.log(success)
       })
     },
-    async socketServer ({ state, commit }, payload) {
-      const name = payload.name
-      console.log(name)
-      commit('clearSocketServerMessages')
-      // state.socket.emit('SOCKET_SERVER', { name }, success => {
-      //   console.log(success)
-      // })
+    async stopWebServer ({ state }) {
+      state.socket.emit('STOP_WEB_SERVER')
+    },
+    async startConductor ({ state, commit }) {
+      commit('clearConductorMessages')
+      state.socket.emit('START_CONDUCTOR')
+    },
+    async stopConductor ({ state }) {
+      state.socket.emit('STOP_CONDUCTOR')
+    },
+    async resetConductor ({ state, commit }) {
+      state.socket.emit('RESET_CONDUCTOR')
+      state.db.agents
+        .where('parent')
+        .equals(state.uuid)
+        .toArray(agents => {
+          agents.forEach(agent => {
+            delete agent.agentPubKey
+            delete agent.cellData
+            state.db.agents.put(agent)
+          })
+        })
     },
     async getTemplates ({ commit, state }) {
       console.log('GET_TEMPLATES')
@@ -381,7 +390,8 @@ export default {
               }
               payload.content = instance.getValue()
               state.db.files.put(saveFile)
-              // state.socket.emit('SAVE_FILE', saveFile)
+              state.socket.emit('SAVE_FILE', saveFile)
+              commit('openFileSaved', saveFile)
             }
           }
         }
@@ -449,6 +459,39 @@ export default {
         }
       })
     },
+    generateAgentKey ({ state, commit }, payload) {
+      const agent = payload.agent
+      state.hcAdmin.generateAgentPubKey().then(agentPubKey => {
+        console.log(agentPubKey)
+        agent.agentPubKey = base64.bytesToBase64(agentPubKey)
+        commit('updateAgent', agent)
+        state.db.agents.put(agent)
+      })
+    },
+    installDna ({ state, commit }, payload) {
+      console.log(payload)
+      const dnas = []
+      payload.dnaPaths.forEach(dna => {
+        dnas.push({
+          path: `../../dev-apps${dna.parentDir}${dna.name}/${dna.name}.dna.gz`,
+          nick: dna.name
+        })
+      })
+      console.log(dnas)
+
+      const agent = payload.agent
+      const appId = uuidv4()
+      state.hcAdmin.installApp({
+        installed_app_id: appId,
+        agent_key: base64.base64ToBytes(agent.agentPubKey),
+        dnas
+      }).then(app => {
+        agent.cellData = app.cell_data
+        state.hcAdmin.activateApp({ installed_app_id: appId })
+        commit('updateAgent', agent)
+        state.db.agents.put(agent)
+      })
+    },
     deleteAgent ({ state, commit }, payload) {
       const agent = { ...payload }
       state.db.agents.delete(agent.uuid).then(() => {
@@ -479,6 +522,12 @@ export default {
       state.treeItems = payload
       if (payload.length > 0) state.applicationName = payload[0].name
     },
+    incrementTreeRefreshKey (state) {
+      state.treeRefreshKey++
+    },
+    dnaPaths (state, payload) {
+      state.dnaPaths = payload
+    },
     clearStdOutMessages (state) {
       state.stdOutMessages = []
     },
@@ -491,11 +540,11 @@ export default {
     appServerMessage (state, payload) {
       state.appServerMessages.push(payload)
     },
-    clearSocketServerMessages (state) {
-      state.socketServerMessages = []
+    clearConductorMessages (state) {
+      state.conductorMessages = []
     },
-    socketServerMessage (state, payload) {
-      state.socketServerMessages.push(payload)
+    conductorMessage (state, payload) {
+      state.conductorMessages.push(payload)
     },
     clearTestDnaMessages (state) {
       state.testDnaMessages = []
@@ -509,8 +558,8 @@ export default {
     webPartTemplates (state, payload) {
       state.webPartTemplates = payload
     },
-    showRefresh (state) {
-      state.showRefresh = true
+    socketFinished (state, payload) {
+      state.finished = payload
     },
     setFile (state, payload) {
       state.openFiles = state.openFiles.map(file =>
@@ -542,7 +591,16 @@ export default {
       )
     },
     openFileEdited (state, payload) {
-      state.openFile.edited = payload
+      state.openFiles = state.openFiles.map(f =>
+        f.key !== payload.key ? f : { ...f, ...payload }
+      )
+    },
+    openFileSaved (state, payload) {
+      payload.edited = false
+      console.log(payload)
+      state.openFiles = state.openFiles.map(f =>
+        `${f.parentDir}${f.name}` !== `${payload.parentDir}${payload.name}` ? f : { ...f, ...payload }
+      )
     },
     setAgents (state, payload) {
       state.agents = payload

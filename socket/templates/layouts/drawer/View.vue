@@ -1,13 +1,11 @@
 <template>
-  <v-main>
-    <v-fade-transition mode="out-in">
-      <router-view />
-    </v-fade-transition>
-  </v-main>
+  <v-fade-transition mode="out-in">
+    <router-view />
+  </v-fade-transition>
 </template>
 
 <script>
 export default {
-  name: "AppView"
-};
+  name: 'AppView'
+}
 </script>

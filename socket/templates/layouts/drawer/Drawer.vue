@@ -7,7 +7,7 @@
     dark
     class="overflow-auto"
     left
-    width="250"
+    width="200"
     :mini-variant.sync="mini"
     permanent
   >
@@ -19,12 +19,12 @@
 
 <script>
 export default {
-  name: "AppDrawer",
-  data() {
+  name: 'AppDrawer',
+  data () {
     return {
       drawerOpen: true,
       mini: false
-    };
+    }
   }
-};
+}
 </script>

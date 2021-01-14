@@ -1,0 +1,15 @@
+environment_path: ./devConductor/files
+use_dangerous_test_keystore: false
+signing_service_uri: ~
+encryption_service_uri: ~
+decryption_service_uri: ~
+dpki: ~
+keystore_path: ~
+passphrase_service: ~
+admin_interfaces:
+    - driver:
+        type: websocket
+        port: 26972
+network:
+    transport_pool:
+      - type: quic

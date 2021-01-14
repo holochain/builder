@@ -7,7 +7,7 @@
             v-for="screen in product.screens"
             :key="screen"
             :src="screen"
-            contain />
+            cover />
         </v-carousel>
       </v-col>
       <v-col md="6" sm="12">
@@ -23,7 +23,7 @@
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn class="primary white--text" tile @click="$emit('install')">
-              <v-icon>mdi-application-import</v-icon>Create Project
+              <v-icon>mdi-application-import</v-icon>Install
             </v-btn>
           </v-card-actions>
         </v-card>

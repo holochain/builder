@@ -5,6 +5,8 @@ const io = require('socket.io')(server, options)
 const fs = require('fs')
 const SERVER_PORT = 45678
 const { spawn } = require('child_process')
+let conductor = undefined
+let appServer = undefined
 
 function getFileType (fileName) {
   if (fileName.startsWith('.')) return fileName.replace('.', '')
@@ -211,26 +213,61 @@ io.on('connection', socket => {
   socket.on('RECURSE_APPLICATION_FILES', (payload, callback) => {
     console.log('RECURSE_APPLICATION_FILES', payload.name)
     getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+    socket.emit('RECURSE_APPLICATION_FILES_EXIT')
   })
 
   socket.on('CREATE_APPLICATION', (payload) => {
     console.log(payload)
-    const createApp = `cd ${devAppsDir} && echo | vue create ${payload.name} --preset /Users/philipbeadle/holochain/app-developer-tools/vue-cli-plugin-holochain-simple/preset.json --no-git`
+    const createApp = `cd ${devAppsDir} && vue create ${payload.name} --preset ${payload.preset} --no-git`
     console.log('CREATE_APPLICATION', createApp)
     const appCreator = spawn(createApp, { shell: true })
     appCreator.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
-      socket.emit('CREATE_APLICATION_ERROR', err.toString())
+      socket.emit('TERMINAL_ERROR', err.toString())
     })
     appCreator.stdout.on('data', function (data) {
       console.log('STDOUT:', data.toString())
-      socket.emit('CREATE_APLICATION_STDOUT', data.toString())
+      socket.emit('TERMINAL_STDOUT', data.toString())
     })
     appCreator.on('exit', function (exitCode) {
       console.log('Child exited with code: ' + exitCode)
-      socket.emit('CREATE_APLICATION_EXIT', exitCode)
+      socket.emit('TERMINAL_EXIT', 'CREATE_APPLICATION_FINISHED')
       getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+      socket.emit('RECURSE_APPLICATION_FILES_EXIT')
     })
+  })
+
+  socket.on('ADD_MODULE', (payload) => {
+    const yarnAddCommand = `cd ${devAppsDir}/${payload.name} && yarn add ${payload.plugin}`
+    console.log(yarnAddCommand)
+    const yarnAdd = spawn(yarnAddCommand, { shell: true })
+    yarnAdd.stderr.on('data', function (err) {
+      console.error('STDERR:', err.toString())
+      socket.emit('TERMINAL_ERROR', err.toString())
+    })
+    yarnAdd.stdout.on('data', function (data) {
+      console.log('STDOUT:', data.toString())
+      socket.emit('TERMINAL_STDOUT', data.toString())
+    })
+    yarnAdd.on('exit', function (exitCode) {
+      console.log('Child exited with code: ' + exitCode)
+      const invokePlugin = `cd ${devAppsDir}/${payload.name} && vue invoke ${payload.plugin}`
+      const pluginInvoker = spawn(invokePlugin, { shell: true })
+      pluginInvoker.stderr.on('data', function (err) {
+        console.error('STDERR:', err.toString())
+        socket.emit('TERMINAL_ERROR', err.toString())
+      })
+      pluginInvoker.stdout.on('data', function (data) {
+        console.log('STDOUT:', data.toString())
+        socket.emit('TERMINAL_STDOUT', data.toString())
+      })
+      pluginInvoker.on('exit', function (exitCode) {
+        console.log('Child exited with code: ' + exitCode)
+        socket.emit('TERMINAL_EXIT', 'ADD_MODULE_FINISHED')
+        getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+        socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+      })
+    })    
   })
 
   socket.on('LINT_FILES', (payload, callback) => {
@@ -239,58 +276,84 @@ io.on('connection', socket => {
     const fileLinter = spawn(lintFiles, { shell: true })
     fileLinter.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
-      socket.emit('LINT_FILES_ERROR', err.toString())
+      socket.emit('TERMINAL_ERROR', err.toString())
     })
     fileLinter.stdout.on('data', function (data) {
       console.log('STDOUT:', data.toString())
-      socket.emit('LINT_FILES_STDOUT', data.toString())
+      socket.emit('TERMINAL_STDOUT', data.toString())
     })
     fileLinter.on('exit', function (exitCode) {
       console.log('Child exited with code: ' + exitCode)
-      socket.emit('LINT_FILES_EXIT', exitCode)
+      socket.emit('TERMINAL_EXIT', 'LINT_FILES_FINISHED')
     })
   })
 
-  socket.on('SERVE_WEB_APP', (payload, callback) => {
-    console.log('SERVE_WEB_APP')
-    const serveWebApp = `cd ${devAppsDir}/${payload.name} && yarn serve`
-    console.log('SERVE_WEB_APP', serveWebApp)
-    const fileServer = spawn(serveWebApp, { shell: true })
-    fileServer.stderr.on('data', function (err) {
+  socket.on('START_WEB_SERVER', (payload) => {
+    const serveWebApp = `cd ${devAppsDir}/${payload.name} && yarn start`
+    appServer = spawn(serveWebApp, { shell: true })
+    appServer.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
       socket.emit('SERVE_WEB_APP_ERROR', err.toString())
     })
-    fileServer.stdout.on('data', function (data) {
+    appServer.stdout.on('data', function (data) {
       console.log('STDOUT:', data.toString())
       socket.emit('SERVE_WEB_APP_STDOUT', data.toString())
     })
-    fileServer.on('exit', function (exitCode) {
+    appServer.on('exit', function (exitCode) {
       console.log('Child exited with code: ' + exitCode)
       socket.emit('SERVE_WEB_APP_EXIT', exitCode)
     })
   })
+  socket.on('STOP_WEB_SERVER', () => {
+    if (appServer !== undefined) appServer.kill()
+    socket.emit('SERVE_WEB_APP_EXIT', 'WEB_SERVER_STOPPED')
+  })
 
-  socket.on('SOCKET_SERVER', (payload, callback) => {
-    console.log('SOCKET_SERVER')
-    const socketServerCmd = `cd ${devAppsDir}/${payload.name}/socket && yarn socket`
-    console.log('SOCKET_SERVER', socketServerCmd)
-    const socketServer = spawn(socketServerCmd, { shell: true })
-    socketServer.stderr.on('data', function (err) {
+  socket.on('START_CONDUCTOR', (payload, callback) => {
+    console.log('CONDUCTOR')
+    const conductorCmd = `RUST_LOG='[debug]=debug,[]=error' holochain -c ./devConductor/developer.yaml`
+    console.log('CONDUCTOR', conductorCmd)
+    conductor = spawn(conductorCmd, { shell: true })
+    conductor.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
-      socket.emit('SOCKET_SERVER_ERROR', err.toString())
+      socket.emit('CONDUCTOR_ERROR', err.toString())
     })
-    socketServer.stdout.on('data', function (data) {
+    conductor.stdout.on('data', function (data) {
       console.log('STDOUT:', data.toString())
-      socket.emit('SOCKET_SERVER_STDOUT', data.toString())
+      socket.emit('CONDUCTOR_STDOUT', data.toString())
     })
-    socketServer.on('exit', function (exitCode) {
+    conductor.on('exit', function (exitCode) {
       console.log('Child exited with code: ' + exitCode)
-      socket.emit('SOCKET_SERVER_EXIT', exitCode)
+      socket.emit('CONDUCTOR_EXIT', exitCode)
+    })
+  })
+  socket.on('STOP_CONDUCTOR', () => {
+    console.log(conductor !== undefined)
+    if (conductor !== undefined) conductor.kill()
+    socket.emit('CONDUCTOR_EXIT', 'CONDUCTOR_STOPPED')
+  })
+  socket.on('RESET_CONDUCTOR', () => {
+    console.log(conductor !== undefined)
+    if (conductor !== undefined) conductor.kill()
+    const reset = `cd devConductor && rm -rf files && mkdir files`
+    console.log('RESET_CONDUCTOR', reset)
+    const resetConductor = spawn(reset, { shell: true })
+    resetConductor.stderr.on('data', function (err) {
+      console.error('STDERR:', err.toString())
+      socket.emit('CONDUCTOR_ERROR', err.toString())
+    })
+    resetConductor.stdout.on('data', function (data) {
+      console.log('STDOUT:', data.toString())
+      socket.emit('CONDUCTOR_STDOUT', data.toString())
+    })
+    resetConductor.on('exit', function (exitCode) {
+      console.log('Child exited with code: ' + exitCode)
+      socket.emit('CONDUCTOR_EXIT', 'RESET_CONDUCTOR_FINISHED')
     })
   })
 
   socket.on('TEST_DNA', (payload, callback) => {
-    const testDnaCmd = `cd ${devAppsDir}/${payload.name}/dna/tests && npm test`
+    const testDnaCmd = `cd ${devAppsDir}${payload.path}/tests && yarn install && yarn test`
     console.log('TEST_DNA', testDnaCmd)
     const dnaTester = spawn(testDnaCmd, { shell: true })
     dnaTester.stderr.on('data', function (err) {

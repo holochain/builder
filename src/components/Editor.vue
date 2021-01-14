@@ -18,7 +18,7 @@
           :file="f"
           :options="f.options"
           :height="height - 44"
-          @edited="f.edited = $event"
+          @edited="fileEdited"
         />
         <v-image-input
           v-if="f.options.mode === 'image'"
@@ -37,7 +37,7 @@
 </template>
 <script>
 import VImageInput from 'vuetify-image-input/a-la-carte'
-import { mapState, mapActions, mapMutations } from 'vuex'
+import { mapState, mapMutations } from 'vuex'
 export default {
   name: 'Editor',
   props: ['height'],
@@ -46,8 +46,11 @@ export default {
     VImageInput
   },
   methods: {
-    ...mapMutations('builder', ['closeFile']),
-    ...mapActions('builder', ['openFileEdited'])
+    ...mapMutations('builder', ['closeFile', 'openFileEdited']),
+    fileEdited (file, edited) {
+      file.edited = edited
+      this.openFileEdited(file)
+    }
   },
   computed: {
     ...mapState('builder', ['openFiles', 'openFile', 'refreshKey']),

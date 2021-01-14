@@ -29,11 +29,10 @@ export default {
   },
   methods: {
     changes () {
-      console.log(this.file.content !== this.internalContent)
       if (this.file.content !== this.internalContent) {
-        this.$emit('edited', true)
+        this.$emit('edited', this.file, true)
       } else {
-        this.$emit('edited', false)
+        this.$emit('edited', this.file, false)
       }
     }
   },
