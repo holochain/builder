@@ -30,7 +30,7 @@
             $emit('file-selected', item);
           "
         >
-          {{ files[item.extension] }}
+          {{ fileTypes[item.extension] }}
         </v-icon>
       </template>
       <template v-slot:label="{ item }">
@@ -93,42 +93,6 @@ export default {
       active: [],
       tree: [],
       contextMenuItem: {},
-      files: {
-        gitignore: 'mdi-git',
-        editorconfig: 'mdi-code-brackets',
-        browserslistrc: 'mdi-format-list-checks',
-        gz: 'mdi-folder-zip-outline',
-        zip: 'mdi-folder-zip-outline',
-        rar: 'mdi-folder-zip-outline',
-        htm: 'mdi-language-html5',
-        html: 'mdi-language-html5',
-        'eslintrc.js': 'mdi-language-javascript',
-        js: 'mdi-language-javascript',
-        ts: 'mdi-language-typescript',
-        json: 'mdi-code-json',
-        pdf: 'mdi-file-pdf',
-        ico: 'mdi-file-image',
-        svg: 'mdi-svg',
-        png: 'mdi-file-image',
-        jpg: 'mdi-file-image',
-        jpeg: 'mdi-file-image',
-        mp4: 'mdi-filmstrip',
-        mkv: 'mdi-filmstrip',
-        avi: 'mdi-filmstrip',
-        wmv: 'mdi-filmstrip',
-        mov: 'mdi-filmstrip',
-        txt: 'mdi-file-document-outline',
-        xls: 'mdi-file-excel',
-        other: 'mdi-file-outline',
-        nix: 'mdi-nix',
-        rs: 'mdi-code-braces',
-        md: 'mdi-language-markdown',
-        yaml: 'mdi-file-settings-outline',
-        toml: 'mdi-file-settings',
-        vue: 'mdi-vuetify',
-        lock: 'mdi-file-lock-outline',
-        LICENSE: 'mdi-license'
-      },
       showMenu: false,
       x: 0,
       y: 0,
@@ -137,7 +101,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('builder', ['db', 'treeItems', 'treeRefreshKey', 'applicationName'])
+    ...mapState('builder', ['db', 'treeItems', 'fileTypes', 'treeRefreshKey', 'applicationName'])
   },
   methods: {
     ...mapActions('builder', ['openFile', 'getTreeRootFolders']),
@@ -145,7 +109,7 @@ export default {
       localStorage.setItem('openTreeNodes', this.open)
       const parentDir = `${item.parentDir}${item.name}/`
       return new Promise(resolve => {
-        this.db.files.where({ parentDir }).toArray(entries => {
+        this.db.currentFiles.where({ parentDir }).toArray(entries => {
           item.children = entries.map(entry => {
             entry.key = `${entry.parentDir}${entry.name}`
             if (entry.type === 'dir') {

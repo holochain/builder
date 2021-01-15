@@ -41,6 +41,46 @@ export default {
     conductor: {
       uuid: '2deb6610-911c-4cfc-b3c4-d89af573fa58',
       name: "Phil's Developer Conductor"
+    },
+    currentBranch: undefined,
+    currentFiles: [],
+    committedFiles: [],
+    commits: [],
+    fileTypes: {
+      gitignore: 'mdi-git',
+      editorconfig: 'mdi-code-brackets',
+      browserslistrc: 'mdi-format-list-checks',
+      gz: 'mdi-folder-zip-outline',
+      zip: 'mdi-folder-zip-outline',
+      rar: 'mdi-folder-zip-outline',
+      htm: 'mdi-language-html5',
+      html: 'mdi-language-html5',
+      'eslintrc.js': 'mdi-language-javascript',
+      js: 'mdi-language-javascript',
+      ts: 'mdi-language-typescript',
+      json: 'mdi-code-json',
+      pdf: 'mdi-file-pdf',
+      ico: 'mdi-file-image',
+      svg: 'mdi-svg',
+      png: 'mdi-file-image',
+      jpg: 'mdi-file-image',
+      jpeg: 'mdi-file-image',
+      mp4: 'mdi-filmstrip',
+      mkv: 'mdi-filmstrip',
+      avi: 'mdi-filmstrip',
+      wmv: 'mdi-filmstrip',
+      mov: 'mdi-filmstrip',
+      txt: 'mdi-file-document-outline',
+      xls: 'mdi-file-excel',
+      other: 'mdi-file-outline',
+      nix: 'mdi-nix',
+      rs: 'mdi-code-braces',
+      md: 'mdi-language-markdown',
+      yaml: 'mdi-file-settings-outline',
+      toml: 'mdi-file-settings',
+      vue: 'mdi-vuetify',
+      lock: 'mdi-file-lock-outline',
+      LICENSE: 'mdi-license'
     }
   },
   actions: {
@@ -48,9 +88,41 @@ export default {
       state.db = new Dexie('builder')
       state.db.version(1).stores({
         agents: 'uuid,name,parent',
-        files: '[parentDir+name],parentDir'
+        commits: 'uuid,parentBranch,branch,timestamp',
+        currentFiles: '[parentDir+name],parentDir,parentBranch,branch',
+        committedFiles: '[parentDir+name],parentDir,parentBranch,branch'
       })
       state.socket = io(SOCKET_URL)
+
+      state.db.currentFiles.toArray(currentFiles => {
+        commit('currentFiles', currentFiles)
+      })
+      state.db.committedFiles.toArray(committedFiles => {
+        commit('committedFiles', committedFiles)
+      })
+      state.db.commits.toArray(commits => {
+        commit('commits', commits)
+        if (localStorage.getItem('commitUuid')) {
+          const uuid = localStorage.getItem('commitUuid')
+          state.db.commits.where({ uuid }).first(com => {
+            const branchCommits = state.commits.filter(c => c.branch === com.branch)
+            console.log(branchCommits)
+            const currentBranch = {
+              parentBranch: com.parentBranch,
+              branch: com.branch,
+              commits: branchCommits
+            }
+            commit('currentBranch', currentBranch)
+          })
+        } else {
+          const currentBranch = {
+            parentBranch: '/',
+            name: 'main',
+            commits: []
+          }
+          commit('currentBranch', currentBranch)
+        }
+      })
 
       state.socket.on('TERMINAL_STDOUT', data => {
         console.log('TERMINAL_STDOUT', data)
@@ -80,13 +152,16 @@ export default {
 
       state.socket.on('RECURSE_APPLICATION_FILES', file => {
         // console.log('RECURSE_APPLICATION_FILES', file)
-        state.db.files.put(file)
+        state.db.currentFiles.put(file)
       })
       state.socket.on('RECURSE_APPLICATION_FILES_ERROR', data => {
         console.log('RECURSE_APPLICATION_FILES_ERROR', data)
       })
       state.socket.on('RECURSE_APPLICATION_FILES_EXIT', () => {
         // console.log('RECURSE_APPLICATION_FILES_EXIT')
+        state.db.currentFiles.toArray(currentFiles => {
+          commit('currentFiles', currentFiles)
+        })
         commit('incrementTreeRefreshKey')
         dispatch('getDnaPaths')
       })
@@ -154,7 +229,7 @@ export default {
       })
     },
     getTreeRootFolders ({ state, commit }) {
-      state.db.files.where({ parentDir: '/' }).toArray(entries => {
+      state.db.currentFiles.where({ parentDir: '/' }).toArray(entries => {
         const treeItems = entries.map(entry => {
           entry.key = `${entry.parentDir}${entry.name}`
           if (entry.type === 'dir') {
@@ -166,13 +241,13 @@ export default {
       })
     },
     getDnaPaths ({ state, commit }) {
-      state.db.files.toArray(entries => {
+      state.db.currentFiles.toArray(entries => {
         const dnaPaths = entries.filter(f => f.parentDir === `/${state.applicationName}/dna/`)
         commit('dnaPaths', dnaPaths)
       })
     },
     async createDirectory ({ state }, payload) {
-      state.db.files.put({
+      state.db.currentFiles.put({
         parentDir: payload.parentDir,
         name: payload.name,
         type: 'dir'
@@ -187,8 +262,8 @@ export default {
     },
     async createFile ({ state }, payload) {
       console.log(payload)
-      state.db.transaction('rw', state.db.files, async () => {
-        await state.db.files.put({
+      state.db.transaction('rw', state.db.currentFiles, async () => {
+        await state.db.currentFiles.put({
           parentDir: payload.parentDir,
           name: payload.filename,
           type: 'file'
@@ -229,7 +304,7 @@ export default {
     async createApplication ({ state, commit }, payload) {
       const name = payload.name
       const preset = payload.preset
-      state.db.files.put({
+      state.db.currentFiles.put({
         parentDir: '/',
         name,
         type: 'dir'
@@ -244,13 +319,68 @@ export default {
       state.socket.emit('ADD_MODULE', { name, plugin })
     },
     async recurseApplicationFiles ({ state }, payload) {
-      const name = payload.name
-      state.db.files.put({
-        parentDir: '/',
-        name,
-        type: 'dir'
+      const name = 'testrepo' // payload.name
+      state.db.currentFiles.clear().then(result => {
+        console.log(result)
+        state.db.currentFiles.put({
+          parentDir: '/',
+          name,
+          type: 'dir'
+        })
+        state.socket.emit('RECURSE_APPLICATION_FILES', { name })
       })
-      state.socket.emit('RECURSE_APPLICATION_FILES', { name })
+    },
+    commitChanges ({ state, getters, commit }, payload) {
+      const changes = getters.changes
+      const message = payload.commitMessage
+      let newBranchCommit = false
+      if (state.commits.length === 0) newBranchCommit = true
+      const newCommit = {
+        uuid: uuidv4(),
+        branch: state.currentBranch.name,
+        parentBranch: state.currentBranch.parentBranch,
+        newBranchCommit,
+        message,
+        timestamp: Date.now(),
+        newFiles: changes.newFiles,
+        updatedFiles: changes.updatedFiles,
+        deletedFiles: changes.deletedFiles
+      }
+      commit('addCommit', newCommit)
+      localStorage.setItem('commitUuid', newCommit.uuid)
+      state.db.commits.put(newCommit)
+      state.db.committedFiles.clear()
+      state.db.currentFiles.toArray(files => {
+        state.db.committedFiles.bulkPut(files)
+        commit('committedFiles', files)
+      })
+    },
+    createBranch ({ state, commit }, payload) {
+      const newCommit = {
+        uuid: uuidv4(),
+        branch: payload.name,
+        parentBranch: `${state.currentBranch.parentBranch}${state.currentBranch.branch}/`,
+        newBranchCommit: true,
+        message: 'New Branch',
+        timestamp: Date.now(),
+        newFiles: state.currentFiles,
+        updatedFiles: [],
+        deletedFiles: []
+      }
+      commit('addCommit', newCommit)
+      state.db.commits.put(newCommit)
+      state.db.committedFiles.clear()
+      state.db.currentFiles.toArray(files => {
+        state.db.committedFiles.bulkPut(files)
+        commit('committedFiles', files)
+      })
+      const currentBranch = {
+        branch: newCommit.branch,
+        parentBranch: newCommit.parentBranch,
+        commits: newCommit
+      }
+      localStorage.setItem('commitUuid', newCommit.uuid)
+      commit('currentBranch', currentBranch)
     },
     async lintFiles ({ state, dispatch, commit }, payload) {
       const name = payload.name
@@ -270,7 +400,7 @@ export default {
       console.log('refreshFiles')
       state.openFiles.map(oF => {
         console.log(oF.parentDir, oF.name)
-        state.db.files
+        state.db.currentFiles
           .where('[parentDir+name]')
           .equals([oF.parentDir, oF.name])
           .first()
@@ -389,7 +519,7 @@ export default {
                 content: instance.getValue()
               }
               payload.content = instance.getValue()
-              state.db.files.put(saveFile)
+              state.db.currentFiles.put(saveFile)
               state.socket.emit('SAVE_FILE', saveFile)
               commit('openFileSaved', saveFile)
             }
@@ -514,6 +644,59 @@ export default {
         .catch(err => console.log(err))
     }
   },
+  getters: {
+    changes: state => {
+      const newFiles = []
+      const updatedFiles = []
+      const deletedFiles = []
+      state.currentFiles.forEach(file => {
+        const lastCommitFile = state.committedFiles.find(
+          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
+        )
+        if (lastCommitFile === undefined) {
+          newFiles.push(file)
+        } else {
+          if (file.content !== lastCommitFile.content) {
+            updatedFiles.push(file)
+          }
+        }
+      })
+      state.committedFiles.forEach(file => {
+        const currentBranchFile = state.currentFiles.find(
+          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
+        )
+        if (currentBranchFile === undefined) {
+          deletedFiles.push(file)
+        }
+      })
+      return {
+        newFiles,
+        updatedFiles,
+        deletedFiles
+      }
+    },
+    branches: state => {
+      if (state.commits.length === 0) {
+        return [
+          {
+            parentBranch: '/',
+            branch: 'main',
+            commits: []
+          }
+        ]
+      } else {
+        const newBranchCommits = state.commits.filter(commit => commit.newBranchCommit === true).sort((a, b) => a.timestamp > b.timestamp)
+        return newBranchCommits.map(commit => {
+          const branchCommits = state.commits.filter(c => c.branch === commit.branch)
+          return {
+            parentBranch: commit.parentBranch,
+            branch: commit.branch,
+            commits: branchCommits
+          }
+        })
+      }
+    }
+  },
   mutations: {
     setApplicationName (state, payload) {
       state.applicationName = payload
@@ -521,6 +704,22 @@ export default {
     treeItems (state, payload) {
       state.treeItems = payload
       if (payload.length > 0) state.applicationName = payload[0].name
+    },
+    currentBranch (state, payload) {
+      state.currentBranch = payload
+    },
+    currentFiles (state, payload) {
+      state.currentFiles = payload
+    },
+    committedFiles (state, payload) {
+      state.committedFiles = payload
+    },
+    commits (state, payload) {
+      state.commits = payload
+    },
+    addCommit (state, payload) {
+      state.commits.push(payload)
+      state.currentBranch.commits.push(payload)
     },
     incrementTreeRefreshKey (state) {
       state.treeRefreshKey++

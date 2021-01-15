@@ -3,7 +3,7 @@
     <v-row no-gutters>
       <v-col md="3" sm="3" xs="12">
         <v-card outlined>
-          <v-card-title>Filters</v-card-title>
+          <v-card-title>Categories</v-card-title>
           <v-divider></v-divider>
           <v-treeview :items="items" :selected-color="'#fff'" activatable open-on-click dense>
             <template v-slot:label="{ item }">

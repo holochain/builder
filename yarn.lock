@@ -886,6 +886,18 @@
     global-agent "^2.0.2"
     global-tunnel-ng "^2.7.1"
 
+"@gitgraph/core@1.4.5":
+  version "1.4.5"
+  resolved "https://registry.yarnpkg.com/@gitgraph/core/-/core-1.4.5.tgz#4c085413566a58f3b0d8cc22f27c785c354a9034"
+  integrity sha512-GFXJBfxPyHQOUmKtdlefozSAuQ/4xSg3QWsEJCK+y5YidQVxHWn4wLNUOPXoD7QDScvUOlJq8gOGTsVSpYQGoQ==
+
+"@gitgraph/js@^1.3.5":
+  version "1.3.5"
+  resolved "https://registry.yarnpkg.com/@gitgraph/js/-/js-1.3.5.tgz#953df4884e53a2117273ca8ab42638449cc05fc4"
+  integrity sha512-xGBYfmfiNkwlC3hjnUHI0EbmatUMf5pePbgPetanJZnhwJ/1c79U83iEJWa6pbgXgCRiaawYb03xYaHqxgck8Q==
+  dependencies:
+    "@gitgraph/core" "1.4.5"
+
 "@hapi/address@2.x.x":
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/@hapi/address/-/address-2.1.4.tgz#5d67ed43f3fd41a69d4b9ff7b56e7c0d1d0a81e5"

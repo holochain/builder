@@ -55,13 +55,6 @@
           <v-list-item key="addComponent">
             <v-list-item-title class="grey--text">Add Component</v-list-item-title>
           </v-list-item>
-          <!-- <v-divider></v-divider>
-           <v-list-item
-            key="refreshFiles"
-            @click="recurseApplicationFiles({ name: applicationName })"
-          >
-            <v-list-item-title>Status</v-list-item-title>
-          </v-list-item> -->
         </v-list>
       </v-menu>
       <v-menu offset-y dark>
@@ -223,6 +216,30 @@
           </v-list-item>
         </v-list>
       </v-menu>
+      <v-menu offset-y dark dense>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+            color="action darken-1"
+            tile
+            text
+            dark
+            small
+            v-bind="attrs"
+            v-on="on"
+          >
+            Collaborate
+          </v-btn>
+        </template>
+        <v-list dense>
+           <v-list-item
+            key="refreshFiles"
+            @click="recurseApplicationFiles({ name: applicationName });
+            fileStatusDrawerOpen = true"
+          >
+            <v-list-item-title>Get Status</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-spacer></v-spacer>
       <v-tooltip bottom>
         <template v-slot:activator="{ on, attrs }">
@@ -236,7 +253,7 @@
             v-on="on"
           >
             {{ applicationName }}
-            <v-icon class="ml-1">mdi-source-branch</v-icon>
+            <v-icon class="ml-1" @click="fileStatusDrawerOpen = true">mdi-source-branch</v-icon>
           </v-btn>
         </template>
         <span>Show the branch graph</span>
@@ -531,6 +548,16 @@
         <product v-else :product="selectedProduct" @install="install"/>
       </v-card>
     </v-navigation-drawer>
+    <v-navigation-drawer
+      v-model="fileStatusDrawerOpen"
+      fixed
+      dark
+      class="overflow-visible pa-0"
+      right
+      :width="this.$vuetify.breakpoint.lgAndUp ? 1200 : 1000"
+    >
+      <file-sharing @close="fileStatusDrawerOpen = false"/>
+    </v-navigation-drawer>
   </v-card>
 </template>
 <script>
@@ -540,6 +567,7 @@ export default {
   components: {
     Agent: () => import('@/components/Agent.vue'),
     FileTree: () => import('@/components/FileTree.vue'),
+    FileSharing: () => import('@/components/FileSharing.vue'),
     Editor: () => import('@/components/Editor.vue'),
     Messages: () => import('@/components/Messages.vue'),
     DnaTemplate: () => import('@/components/DnaTemplate.vue'),
@@ -555,6 +583,7 @@ export default {
       cwHeight: 700,
       terminalTitle: 'Terminal',
       myappDrawerOpen: false,
+      fileStatusDrawerOpen: false,
       stdMessagesDialog: false,
       createApplicationDialog: false,
       webPartDialogTitle: '',
@@ -599,7 +628,9 @@ export default {
       'finished',
       'dnaTemplates',
       'webPartTemplates',
-      'testDnaMessages'
+      'testDnaMessages',
+      'currentFiles',
+      'sharedFiles'
     ]),
     ...mapState('appStore', ['applicationItems', 'moduleItems']),
     items () {
