@@ -106,7 +106,6 @@ export default {
           const uuid = localStorage.getItem('commitUuid')
           state.db.commits.where({ uuid }).first(com => {
             const branchCommits = state.commits.filter(c => c.branch === com.branch)
-            console.log(branchCommits)
             const currentBranch = {
               parentBranch: com.parentBranch,
               branch: com.branch,
@@ -117,7 +116,7 @@ export default {
         } else {
           const currentBranch = {
             parentBranch: '/',
-            name: 'main',
+            branch: 'main',
             commits: []
           }
           commit('currentBranch', currentBranch)
@@ -333,13 +332,13 @@ export default {
     commitChanges ({ state, getters, commit }, payload) {
       const changes = getters.changes
       const message = payload.commitMessage
-      let newBranchCommit = false
-      if (state.commits.length === 0) newBranchCommit = true
+      let type = 'commit'
+      if (state.commits.length === 0) type = 'branch'
       const newCommit = {
         uuid: uuidv4(),
-        branch: state.currentBranch.name,
+        branch: state.currentBranch.branch,
         parentBranch: state.currentBranch.parentBranch,
-        newBranchCommit,
+        type,
         message,
         timestamp: Date.now(),
         newFiles: changes.newFiles,
@@ -360,13 +359,20 @@ export default {
         uuid: uuidv4(),
         branch: payload.name,
         parentBranch: `${state.currentBranch.parentBranch}${state.currentBranch.branch}/`,
-        newBranchCommit: true,
-        message: 'New Branch',
+        type: 'branch',
+        message: `New Branch ${payload.name}`,
         timestamp: Date.now(),
         newFiles: state.currentFiles,
         updatedFiles: [],
         deletedFiles: []
       }
+      const currentBranch = {
+        branch: newCommit.branch,
+        parentBranch: newCommit.parentBranch,
+        commits: []
+      }
+      localStorage.setItem('commitUuid', newCommit.uuid)
+      commit('currentBranch', currentBranch)
       commit('addCommit', newCommit)
       state.db.commits.put(newCommit)
       state.db.committedFiles.clear()
@@ -374,13 +380,31 @@ export default {
         state.db.committedFiles.bulkPut(files)
         commit('committedFiles', files)
       })
-      const currentBranch = {
-        branch: newCommit.branch,
-        parentBranch: newCommit.parentBranch,
-        commits: newCommit
+    },
+    mergeBranch ({ state, getters, commit }, payload) {
+      const changes = getters.changes
+      const message = payload.message
+      let type = 'merge'
+      if (state.commits.length === 0) type = 'branch'
+      const newCommit = {
+        uuid: uuidv4(),
+        branch: state.currentBranch.branch,
+        parentBranch: state.currentBranch.parentBranch,
+        type,
+        message,
+        timestamp: Date.now(),
+        newFiles: changes.newFiles,
+        updatedFiles: changes.updatedFiles,
+        deletedFiles: changes.deletedFiles
       }
+      commit('addCommit', newCommit)
       localStorage.setItem('commitUuid', newCommit.uuid)
-      commit('currentBranch', currentBranch)
+      state.db.commits.put(newCommit)
+      state.db.committedFiles.clear()
+      state.db.currentFiles.toArray(files => {
+        state.db.committedFiles.bulkPut(files)
+        commit('committedFiles', files)
+      })
     },
     async lintFiles ({ state, dispatch, commit }, payload) {
       const name = payload.name
@@ -673,27 +697,6 @@ export default {
         newFiles,
         updatedFiles,
         deletedFiles
-      }
-    },
-    branches: state => {
-      if (state.commits.length === 0) {
-        return [
-          {
-            parentBranch: '/',
-            branch: 'main',
-            commits: []
-          }
-        ]
-      } else {
-        const newBranchCommits = state.commits.filter(commit => commit.newBranchCommit === true).sort((a, b) => a.timestamp > b.timestamp)
-        return newBranchCommits.map(commit => {
-          const branchCommits = state.commits.filter(c => c.branch === commit.branch)
-          return {
-            parentBranch: commit.parentBranch,
-            branch: commit.branch,
-            commits: branchCommits
-          }
-        })
       }
     }
   },

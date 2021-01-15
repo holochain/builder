@@ -13,31 +13,30 @@
           >
         </v-combobox>
         <v-spacer></v-spacer>
-        <v-icon v-if="!showChanges" @click="showChanges = true"
-          >mdi-source-commit</v-icon
-        >
-        <v-icon v-if="showChanges" @click="showBranchGraph"
-          >mdi-source-branch</v-icon
-        >
-        <v-icon>mdi-sync</v-icon>
-        <v-icon @click="$emit('close')"
-          >mdi-close-box-outline</v-icon
-        >
+        <v-icon v-if="!showChanges" @click="showChanges = true">
+          mdi-source-commit
+          </v-icon>
+        <v-icon v-if="showChanges" @click="showBranchGraph">
+          mdi-source-branch
+        </v-icon>
+        <v-icon @click="$emit('close')">
+          mdi-close-box-outline
+        </v-icon>
       </v-system-bar>
       <v-row no-gutters v-if="currentBranch">
         <v-col>
           <v-card
             v-if="!showChanges"
-            class="ma-0 pl-2 pr-2 fill-height"
+            class="ma-0 pa-0"
+            height="95vh"
             flat
             tile
             dark
           >
             <v-card
               id="gitgraphcard"
-              key="gitgraphcard"
-              class="mx-0"
-              height="86vh"
+              class="graph-container mb-2"
+              :key="`${currentBranch.parentBranch}${currentBranch.branch}`"
               dark
             >
             </v-card>
@@ -316,7 +315,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions('builder', ['commitChanges', 'createBranch']),
+    ...mapActions('builder', ['commitChanges', 'createBranch', 'mergeBranch']),
     showBranchGraph () {
       this.showChanges = false
       process.nextTick(() => {
@@ -324,29 +323,25 @@ export default {
         this.gitgraph = createGitgraph(this.graphContainer, {
           mode: 'compact'
         })
-        this.branches.forEach(b => {
-          const parentBranchParts = b.parentBranch.split('/')
+        let graphBranch
+        this.commits.sort((a, b) => a.timestamp - b.timestamp).forEach(commit => {
+          const parentBranchParts = commit.parentBranch.split('/')
           const parentBranchName = parentBranchParts[parentBranchParts.length - 2]
-          if (b.branch === 'main') {
-            const graphBranch = this.gitgraph
-              .branch(b.branch)
-              .commit('New repository')
-            b.commits.forEach(c => {
-              graphBranch.commit(c.message)
-            })
-          } else {
-            const graphBranch = this.gitgraph
-              .branch(parentBranchName)
-              .branch(b.branch)
-              .commit(`Branched ${b.branch} from ${parentBranchName}`)
-            b.commits.forEach(c => {
-              graphBranch.commit(c.message)
-            })
-            if (b.merge) {
-              this.gitgraph
+          if (commit.type === 'branch') {
+            if (commit.branch === 'main') {
+              graphBranch = this.gitgraph
+                .branch('main')
+                .commit('New repository')
+            } else {
+              graphBranch = this.gitgraph
                 .branch(parentBranchName)
-                .merge(graphBranch, this.mergeMessage)
+                .branch(commit.branch)
+                .commit(`Branched ${commit.branch} from ${parentBranchName}`)
             }
+          } else if (commit.type === 'commit') {
+            graphBranch.commit(commit.message)
+          } else {
+            this.gitgraph.branch(parentBranchName).merge(graphBranch, commit.message)
           }
         })
       })
@@ -364,7 +359,7 @@ export default {
     },
     merge () {
       if (this.mergeMessage !== '') {
-        this.mergeChanges({ mergeMessage: this.mergeMessage })
+        this.mergeBranch({ message: this.mergeMessage })
         this.mergeMessage = ''
       }
     }
@@ -376,3 +371,13 @@ export default {
   }
 }
 </script>
+<style scoped>
+.graph-container {
+  box-sizing: border-box;
+  overflow-y: auto;
+  height: 87vh;
+}
+ul {
+  list-style-type: none;
+}
+</style>

@@ -554,7 +554,7 @@
       dark
       class="overflow-visible pa-0"
       right
-      :width="this.$vuetify.breakpoint.lgAndUp ? 1200 : 1000"
+      :width="this.$vuetify.breakpoint.lgAndUp ? 1000 : 800"
     >
       <file-sharing @close="fileStatusDrawerOpen = false"/>
     </v-navigation-drawer>
@@ -720,14 +720,3 @@ export default {
   }
 }
 </script>
-<style scoped>
-.std-container {
-  box-sizing: border-box;
-  overflow-y: auto;
-  background-color: black;
-  height: 350px;
-}
-ul {
-  list-style-type: none;
-}
-</style>
