@@ -19,6 +19,7 @@
     "byte-base64": "^1.1.0",
     "core-js": "^3.6.5",
     "dexie": "^3.0.2",
+    "diff-match-patch": "^1.0.5",
     "foreman": "^3.0.1",
     "vue": "^2.6.11",
     "vue-codemirror": "^4.0.6",

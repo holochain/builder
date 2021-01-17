@@ -4,14 +4,17 @@
         <v-icon>mdi-source-repository</v-icon>
         Current Branch ->
         <v-combobox
-            :items="branches"
-            item-text="branch"
-            item-value="uuid"
-            hide-details
-            dense
-            class="mt-0 ml-2"
-          >
-        </v-combobox>
+          :value="currentBranch"
+          :disabled="!readyToBranch"
+          return-object
+          :items="branches"
+          item-text="branch"
+          item-value="uuid"
+          @change="changeBranch"
+          hide-details
+          dense
+          class="mt-0 ml-2"
+        />
         <v-spacer></v-spacer>
         <v-icon v-if="!showChanges" @click="showChanges = true">
           mdi-source-commit
@@ -63,70 +66,84 @@
             flat
             tile
           >
-            <v-card-text class="grow">
+            <v-card-text>
               <v-card-title>Commits to {{ currentBranch.branch }} branch</v-card-title>
               <v-expansion-panels>
                 <v-expansion-panel
-                  v-for="(commit, index) in commits"
+                  v-for="(commit, index) in branchCommits"
                   :key="index"
                 >
                   <v-expansion-panel-header disable-icon-rotate>
-                    {{ commit.message }}
+                      {{ commit.message }}
                     <template v-slot:actions>
                       <v-icon>mdi-details</v-icon>
                     </template>
                   </v-expansion-panel-header>
                   <v-expansion-panel-content>
-                    <v-row no-gutters class="fill-height" justify="center">
-                      <v-col cols="4">
-                        <v-list dense dark>
-                          <v-list-item-title class="text-center font-weight-bold">Added</v-list-item-title>
-                          <v-list-item v-for="(file, index) in commit.newFiles" :key="index">
-                            <v-list-item-icon>
-                              <v-icon v-if="file.type === 'file'">
-                                {{fileTypes[file.extension]}}
-                              </v-icon>
-                              <v-icon v-else>
-                                mdi-folder-outline
-                              </v-icon>
-                            </v-list-item-icon>
-                            <v-list-item-title>{{ file.name }}</v-list-item-title>
-                          </v-list-item>
-                        </v-list>
-                      </v-col>
-                      <v-col cols="4">
-                        <v-list dense dark>
-                          <v-list-item-title class="text-center font-weight-bold">Updated</v-list-item-title>
-                          <v-list-item v-for="(file, index) in commit.updatedFiles" :key="index">
-                            <v-list-item-icon>
-                              <v-icon v-if="file.type === 'file'">
-                                {{fileTypes[file.extension]}}
-                              </v-icon>
-                              <v-icon v-else>
-                                mdi-folder-outline
-                              </v-icon>
-                            </v-list-item-icon>
-                            <v-list-item-title>{{ `${file.parentDir}${file.name}` }}</v-list-item-title>
-                          </v-list-item>
-                        </v-list>
-                      </v-col>
-                      <v-col cols="4">
-                        <v-list dense dark>
-                          <v-list-item-title class="text-center font-weight-bold">Deleted</v-list-item-title>
-                          <v-list-item v-for="(file, index) in commit.deletedFiles" :key="index">
-                            <v-list-item-icon>
-                              <v-icon v-if="file.type === 'file'">
-                                {{fileTypes[file.extension]}}
-                              </v-icon>
-                              <v-icon v-else>
-                                mdi-folder-outline
-                              </v-icon>
-                            </v-list-item-icon>
-                            <v-list-item-title>{{ `${file.parentDir}${file.name}` }}</v-list-item-title>
-                          </v-list-item>
-                        </v-list>
-                      </v-col>
-                    </v-row>
+                    <v-card flat>
+                      <v-row no-gutters class="fill-height" justify="center">
+                        <v-col cols="4">
+                          <v-list dense dark>
+                            <v-list-item-title class="text-center font-weight-bold">Added</v-list-item-title>
+                            <v-list-item v-for="(file, index) in commit.newFiles" :key="index">
+                              <v-list-item-icon>
+                                <v-icon v-if="file.type === 'file'">
+                                  {{fileTypes[file.extension]}}
+                                </v-icon>
+                                <v-icon v-else>
+                                  mdi-folder-outline
+                                </v-icon>
+                              </v-list-item-icon>
+                              <v-list-item-title>{{ file.name }}</v-list-item-title>
+                            </v-list-item>
+                          </v-list>
+                        </v-col>
+                        <v-col cols="4">
+                          <v-list dense dark>
+                            <v-list-item-title class="text-center font-weight-bold">Updated</v-list-item-title>
+                            <v-list-item v-for="(file, index) in commit.updatedFiles" :key="index">
+                              <v-list-item-icon>
+                                <v-icon v-if="file.type === 'file'">
+                                  {{fileTypes[file.extension]}}
+                                </v-icon>
+                                <v-icon v-else>
+                                  mdi-folder-outline
+                                </v-icon>
+                              </v-list-item-icon>
+                              <v-list-item-title>{{ `${file.parentDir}${file.name}` }}</v-list-item-title>
+                            </v-list-item>
+                          </v-list>
+                        </v-col>
+                        <v-col cols="4">
+                          <v-list dense dark>
+                            <v-list-item-title class="text-center font-weight-bold">Deleted</v-list-item-title>
+                            <v-list-item v-for="(file, index) in commit.deletedFiles" :key="index">
+                              <v-list-item-icon>
+                                <v-icon v-if="file.type === 'file'">
+                                  {{fileTypes[file.extension]}}
+                                </v-icon>
+                                <v-icon v-else>
+                                  mdi-folder-outline
+                                </v-icon>
+                              </v-list-item-icon>
+                              <v-list-item-title>{{ `${file.parentDir}${file.name}` }}</v-list-item-title>
+                            </v-list-item>
+                          </v-list>
+                        </v-col>
+                      </v-row>
+                      <v-card-actions>
+                        <v-text-field
+                          class="title"
+                          v-model="newBranchName"
+                          label="New Branch From This Commit"
+                          append-icon="mdi-source-branch"
+                          @click:append="newBranchFromCommit(commit)"
+                          @keydown.enter="newBranchFromCommit(commit)"
+                          outlined
+                          dense
+                        />
+                      </v-card-actions>
+                    </v-card>
                   </v-expansion-panel-content>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -138,7 +155,7 @@
                 </v-icon>
               </v-card-title>
               <v-card-title v-else class="pr-6">
-                Uncommitted changes to {{ currentBranch.branch }} branch
+                <span v-if="readyToBranch">No changes to {{ currentBranch.branch }} branch</span><span v-else>Changes to {{ currentBranch.branch }} branch</span>
                 <v-spacer></v-spacer>
                 <v-icon @click="uncommittedDetails = !uncommittedDetails">
                   mdi-details
@@ -146,8 +163,8 @@
               </v-card-title>
               <v-row
                 v-show="uncommittedDetails"
-                class="mx-0 pl-5 pr-5"
                 justify="center"
+                no-gutters
               >
                 <v-col cols="4">
                   <v-list dense dark>
@@ -185,7 +202,7 @@
                   <v-list dense dark>
                     <v-list-item-title class="text-center font-weight-bold">Deleted</v-list-item-title>
                     <v-list-item v-for="(file, index) in changes.deletedFiles" :key="index">
-                      <v-list-item-icon>
+                      <v-list-item-icon class="mr-0">
                         <v-icon v-if="file.type === 'file'">
                           {{fileTypes[file.extension]}}
                         </v-icon>
@@ -200,9 +217,10 @@
               </v-row>
             </v-card-text>
             <v-card-text>
-              <v-row height="100%" no-gutters align="end" justify="center">
-                <v-col cols="12">
+              <v-row height="100%" no-gutters>
+                <v-col cols="12" class="pl-4">
                   <v-textarea
+                    v-if="!readyToBranch"
                     v-model="commitMessage"
                     label="Commit Message"
                     append-icon="mdi-source-commit"
@@ -254,7 +272,7 @@
 </template>
 
 <script>
-import { mapState, mapActions } from 'vuex'
+import { mapState, mapActions, mapGetters } from 'vuex'
 import { createGitgraph } from '@gitgraph/js'
 export default {
   name: 'FileSharing',
@@ -262,6 +280,7 @@ export default {
   data () {
     return {
       showChanges: false,
+      selectedBranch: undefined,
       newBranchName: '',
       commitMessage: '',
       mergeMessage: '',
@@ -270,6 +289,7 @@ export default {
   },
   computed: {
     ...mapState('builder', ['currentBranch', 'currentFiles', 'committedFiles', 'commits', 'fileTypes']),
+    ...mapGetters('builder', ['branchCommits']),
     branches () {
       return this.$store.getters['builder/branches']
     },
@@ -280,8 +300,7 @@ export default {
     changes () {
       return this.$store.getters['builder/changes']
     },
-    readyToMerge () {
-      if (this.currentBranch.branch === 'main') return false
+    readyToBranch () {
       const changes = this.$store.getters['builder/changes']
       if (
         changes.newFiles
@@ -293,7 +312,8 @@ export default {
         return false
       }
     },
-    readyToBranch () {
+    readyToMerge () {
+      if (this.currentBranch.branch === 'main') return false
       const changes = this.$store.getters['builder/changes']
       if (
         changes.newFiles
@@ -315,7 +335,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions('builder', ['commitChanges', 'createBranch', 'mergeBranch']),
+    ...mapActions('builder', ['commitChanges', 'createBranch', 'mergeBranch', 'changeBranch']),
     showBranchGraph () {
       this.showChanges = false
       process.nextTick(() => {
@@ -347,8 +367,12 @@ export default {
       })
     },
     newBranch () {
-      // In Holochain link all currentFiles to new branch path
       this.createBranch({ name: this.newBranchName })
+      this.newBranchName = ''
+    },
+    newBranchFromCommit (commit) {
+      console.log(commit)
+      // this.createBranch({ name: this.newBranchName })
       this.newBranchName = ''
     },
     commit () {
@@ -365,7 +389,7 @@ export default {
     }
   },
   watch: {
-    currentBranch () {
+    currentBranch (now, prev) {
       this.showBranchGraph()
     }
   }

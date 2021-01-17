@@ -545,7 +545,7 @@
           ></v-text-field>
         </v-card-text>
         <shop v-if="shop" :items="items" :initialCategory="initialCategory" @show-product="showProduct"/>
-        <product v-else :product="selectedProduct" @install="install"/>
+        <product v-else :product="selectedProduct" :newApplication="newApplication" @install="install"/>
       </v-card>
     </v-navigation-drawer>
     <v-navigation-drawer

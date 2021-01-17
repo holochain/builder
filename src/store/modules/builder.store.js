@@ -5,6 +5,7 @@ import * as base64 from 'byte-base64'
 import Dexie from 'dexie'
 import io from 'socket.io-client'
 import { AdminWebsocket } from '@holochain/conductor-api'
+import DiffMatchPatch from 'diff-match-patch'
 
 const SOCKET_URL = 'ws://localhost:45678'
 const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26972'
@@ -105,21 +106,20 @@ export default {
         if (localStorage.getItem('commitUuid')) {
           const uuid = localStorage.getItem('commitUuid')
           state.db.commits.where({ uuid }).first(com => {
-            const branchCommits = state.commits.filter(c => c.branch === com.branch)
             const currentBranch = {
               parentBranch: com.parentBranch,
               branch: com.branch,
-              commits: branchCommits
+              uuid
             }
-            commit('currentBranch', currentBranch)
+            commit('setCurrentBranch', currentBranch)
           })
         } else {
           const currentBranch = {
             parentBranch: '/',
             branch: 'main',
-            commits: []
+            uuid: ''
           }
-          commit('currentBranch', currentBranch)
+          commit('setCurrentBranch', currentBranch)
         }
       })
 
@@ -320,7 +320,6 @@ export default {
     async recurseApplicationFiles ({ state }, payload) {
       const name = 'testrepo' // payload.name
       state.db.currentFiles.clear().then(result => {
-        console.log(result)
         state.db.currentFiles.put({
           parentDir: '/',
           name,
@@ -369,10 +368,10 @@ export default {
       const currentBranch = {
         branch: newCommit.branch,
         parentBranch: newCommit.parentBranch,
-        commits: []
+        uuid: newCommit.uuid
       }
       localStorage.setItem('commitUuid', newCommit.uuid)
-      commit('currentBranch', currentBranch)
+      commit('setCurrentBranch', currentBranch)
       commit('addCommit', newCommit)
       state.db.commits.put(newCommit)
       state.db.committedFiles.clear()
@@ -380,6 +379,37 @@ export default {
         state.db.committedFiles.bulkPut(files)
         commit('committedFiles', files)
       })
+    },
+    changeBranch ({ state, commit, getters }, payload) {
+      console.log(payload)
+      const currentBranch = payload
+      localStorage.setItem('commitUuid', currentBranch.uuid)
+      commit('setCurrentBranch', currentBranch)
+      const branchCommits = getters.branchCommits
+      state.db.currentFiles.clear()
+      state.db.committedFiles.clear()
+      commit('currentFiles', [])
+      commit('committedFiles', [])
+      const branchFiles = []
+      branchCommits.forEach(bc => {
+        bc.newFiles.forEach(file => branchFiles.push(file))
+        bc.updatedFiles.forEach(update => {
+          console.log(update)
+          const fileToUpdate = branchFiles.filter(file => file.parentDir === update.parentDir).find(file => file.name === update.name)
+          console.log(fileToUpdate)
+          const dmp = new DiffMatchPatch()
+          const patches = dmp.patch_fromText(update.patch)
+          const result = dmp.patch_apply(patches, fileToUpdate.content)
+          console.log(result)
+          fileToUpdate.content = result[0]
+        })
+      })
+      state.db.currentFiles.bulkPut(branchFiles)
+      state.db.committedFiles.bulkPut(branchFiles)
+      commit('currentFiles', branchFiles)
+      commit('committedFiles', branchFiles)
+      state.socket.emit('CHANGE_BRANCH', { name: state.applicationName, files: branchFiles })
+      commit('incrementTreeRefreshKey')
     },
     mergeBranch ({ state, getters, commit }, payload) {
       const changes = getters.changes
@@ -681,7 +711,13 @@ export default {
           newFiles.push(file)
         } else {
           if (file.content !== lastCommitFile.content) {
-            updatedFiles.push(file)
+            const dmp = new DiffMatchPatch()
+            const patches = dmp.patch_make(lastCommitFile.content, file.content)
+            const patch = dmp.patch_toText(patches)
+            const update = { ...file }
+            delete update.content
+            update.patch = patch
+            updatedFiles.push(update)
           }
         }
       })
@@ -690,6 +726,7 @@ export default {
           f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
         )
         if (currentBranchFile === undefined) {
+          delete file.content
           deletedFiles.push(file)
         }
       })
@@ -698,6 +735,29 @@ export default {
         updatedFiles,
         deletedFiles
       }
+    },
+    branches: state => {
+      if (state.commits.length === 0) {
+        return [
+          {
+            parentBranch: '/',
+            branch: 'main',
+            uuid: ''
+          }
+        ]
+      } else {
+        const branchCommits = state.commits.filter(commit => commit.type === 'branch').sort((a, b) => a.timestamp > b.timestamp)
+        return branchCommits.map(bc => (
+          {
+            parentBranch: bc.parentBranch,
+            branch: bc.branch,
+            uuid: bc.uuid
+          }
+        ))
+      }
+    },
+    branchCommits: state => {
+      return state.commits.filter(commit => commit.branch === state.currentBranch.branch).sort((a, b) => a.timestamp > b.timestamp)
     }
   },
   mutations: {
@@ -708,11 +768,22 @@ export default {
       state.treeItems = payload
       if (payload.length > 0) state.applicationName = payload[0].name
     },
-    currentBranch (state, payload) {
+    setCurrentBranch (state, payload) {
       state.currentBranch = payload
     },
     currentFiles (state, payload) {
       state.currentFiles = payload
+    },
+    addCurrentFiles (state, payload) {
+      payload.forEach(file => state.currentFiles.push(file))
+    },
+    updateCurrentFile (state, payload) {
+      state.currentFiles = state.currentFiles.map(file =>
+        `${file.parentDir}/${file.name}` !==
+        `${payload.parentDir}/${payload.name}`
+          ? file
+          : { ...file, ...payload }
+      )
     },
     committedFiles (state, payload) {
       state.committedFiles = payload
@@ -722,7 +793,6 @@ export default {
     },
     addCommit (state, payload) {
       state.commits.push(payload)
-      state.currentBranch.commits.push(payload)
     },
     incrementTreeRefreshKey (state) {
       state.treeRefreshKey++
@@ -780,6 +850,9 @@ export default {
     },
     pushOpenFiles (state, payload) {
       state.openFiles.push(payload)
+    },
+    closeOpenFiles (state) {
+      state.openFiles = []
     },
     setSelectedTab (state, payload) {
       state.selectedTab = payload

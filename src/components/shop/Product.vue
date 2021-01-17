@@ -23,7 +23,9 @@
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn class="primary white--text" tile @click="$emit('install')">
-              <v-icon>mdi-application-import</v-icon>Install
+              <v-icon>mdi-application-import</v-icon>
+              <span v-if="newApplication">Create New Project</span>
+              <span v-else>Add New Module</span>
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -99,7 +101,7 @@
 </template>
 <script>
 export default {
-  props: ['product'],
+  props: ['product', 'newApplication'],
   data: () => ({
     rating: 4.5,
     item: 5,

@@ -44,6 +44,7 @@ function getFoldersAndFiles (parentDir, socket) {
   const files = entries
     .filter(entry => !entry.isDirectory())
     .filter(entry => entry.name !== '.DS_Store')
+    .filter(entry => entry.name.includes('.dna.gz') === false)
   for (const file of files) {
     let fileExtension = getFileType(file.name)
     let contentPrefix = ''
@@ -97,6 +98,31 @@ io.on('connection', socket => {
         callback(err, `Added ${payload}`)
       }
     )
+  })
+
+  socket.on('CHANGE_BRANCH', (payload) => {
+    const removeFiles = `cd ${devAppsDir} && rm -rf ${payload.name} && mkdir ${payload.name}`
+    const fileRemover = spawn(removeFiles, { shell: true })
+    fileRemover.stderr.on('data', function (err) {
+      console.error('STDERR:', err.toString())
+      socket.emit('TERMINAL_ERROR', err.toString())
+    })
+    fileRemover.stdout.on('data', function (data) {
+      console.log('STDOUT:', data.toString())
+      socket.emit('TERMINAL_STDOUT', data.toString())
+    })
+    fileRemover.on('exit', function (exitCode) {
+      const files = payload.files
+      files.forEach(file => {
+        const dir = `${devAppsDir}${file.parentDir}`
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true })
+        }
+        if (file.type === 'file') fs.writeFileSync(`${dir}${file.name}`, file.content, { encoding: file.encoding })
+        socket.emit('TERMINAL_STDOUT', `${dir}${file.name}`)
+      })
+      socket.emit('TERMINAL_EXIT', 'CHANGE_BRANCH_FINISHED')
+    })
   })
 
   socket.on('GET_TEMPLATES', (payload, callback) => {
