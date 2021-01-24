@@ -98,10 +98,10 @@
             <v-list-item-title class="grey--text">Add Entry Type</v-list-item-title>
           </v-list-item>
           <v-list-item key="duplicateEntryType" @click="duplicateEntryDialog = true">
-            <v-list-item-title class="grey--text">Duplicate Entry Type</v-list-item-title>
+            <v-list-item-title>Duplicate Entry Type</v-list-item-title>
           </v-list-item>
           <v-list-item key="renameEntryType" @click="renameEntryDialog = true">
-            <v-list-item-title class="grey--text">Rename Entry Type</v-list-item-title>
+            <v-list-item-title>Rename Entry Type</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -234,6 +234,8 @@
            <v-list-item
             key="refreshFiles"
             @click="recurseApplicationFiles({ name: applicationName });
+            getCurrentChanges();
+            getMergeTargetChanges();
             fileStatusDrawerOpen = true"
           >
             <v-list-item-title>Get Status</v-list-item-title>
@@ -253,10 +255,9 @@
             v-on="on"
           >
             {{ applicationName }}
-            <v-icon class="ml-1" @click="fileStatusDrawerOpen = true">mdi-source-branch</v-icon>
           </v-btn>
         </template>
-        <span>Show the branch graph</span>
+        <span>Show the project details</span>
       </v-tooltip>
       <agent />
     </v-app-bar>
@@ -410,6 +411,9 @@
                   :webPartName="webPartName"
                   :webPartType="webPartType"
                   :details="true"
+                  @close="addWebPartDialog = false;
+                    stdMessagesDialog = true;
+                    terminalTab = 0;"
                 >
                 </web-part-template>
               </v-col>
@@ -436,10 +440,12 @@
                 cols="6"
               >
               <v-combobox
-                v-model="oldName"
-                :items="entryTypes"
-                label="Entry Type to rename"
-                hint="Select one"
+                v-model="selectedEntryType"
+                :items="dnaEntryTypes"
+                label="Entry Type to Rename"
+                :hint="selectedEntryTypeHint"
+                return-object
+                item-text="name"
                 persistent-hint
                 outlined
                 dense
@@ -464,8 +470,8 @@
           <v-spacer></v-spacer>
           <v-btn color="action darken-1" text @click="renameEntryDialog = false">
             Close
-          </v-btn><!--  @click="renameEntryType({ name: applicationName, oldName, newName }); renameEntryDialog = false" -->
-          <v-btn color="action darken-1" text>
+          </v-btn>
+          <v-btn color="action darken-1" text @click="renameEntryType({ name: applicationName, entryTypeToDuplicate: selectedEntryType, newName }); renameEntryDialog = false">
             Rename
           </v-btn>
         </v-card-actions>
@@ -477,16 +483,17 @@
           Duplicate entry type
         </v-card-title>
         <v-card-text class="pa-3 pt-0">
-          <v-container>
-            <v-row height="100%">
+            <v-row>
               <v-col
                 cols="6"
               >
               <v-combobox
-                v-model="oldName"
-                :items="entryTypes"
+                v-model="selectedEntryType"
+                :items="dnaEntryTypes"
                 label="Entry Type to Duplicate"
-                hint="Select one"
+                :hint="selectedEntryTypeHint"
+                return-object
+                item-text="name"
                 persistent-hint
                 outlined
                 dense
@@ -505,15 +512,14 @@
                 ></v-text-field>
               </v-col>
             </v-row>
-          </v-container>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="action darken-1" text @click="duplicateEntryDialog = false">
             Close
-          </v-btn><!--  @click="duplicateEntryType({ name: applicationName, oldName, newName }); duplicateEntryDialog = false" -->
-          <v-btn color="action darken-1" text>
-            Rename
+          </v-btn>
+          <v-btn color="action darken-1" text @click="duplicateEntryType({ name: applicationName, entryTypeToDuplicate: selectedEntryType, newName }); duplicateEntryDialog = false">
+            Duplicate
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -554,7 +560,7 @@
       dark
       class="overflow-visible pa-0"
       right
-      :width="this.$vuetify.breakpoint.lgAndUp ? 1000 : 800"
+      :width="this.$vuetify.breakpoint.lgAndUp ? 1100 : 900"
     >
       <file-sharing @close="fileStatusDrawerOpen = false"/>
     </v-navigation-drawer>
@@ -600,10 +606,9 @@ export default {
       name: '',
       terminalTab: 0,
       oldName: [],
+      selectedEntryType: [],
+      selectedEntryTypeHint: '',
       newName: '',
-      entryTypes: [
-        'project'
-      ],
       selectedProduct: {
         uuid: '',
         name: '',
@@ -622,6 +627,7 @@ export default {
       'conductor',
       'applicationName',
       'dnaPaths',
+      'dnaEntryTypes',
       'stdOutMessages',
       'appServerMessages',
       'conductorMessages',
@@ -660,8 +666,11 @@ export default {
       'cloneDevConductor',
       'testDna',
       'getDnaPaths',
+      'getDnaEntryTypes',
       'renameEntryType',
-      'duplicateEntryType'
+      'duplicateEntryType',
+      'getMergeTargetChanges',
+      'getCurrentChanges'
     ]),
     ...mapMutations('builder', ['setApplicationName', 'socketFinished']),
     setCodeWindowHeight () {
@@ -675,7 +684,6 @@ export default {
       } else {
         this.initialCategory = 5
       }
-      console.log(this.initialCategory)
       this.shop = true
     },
     showProduct (product) {
@@ -710,12 +718,18 @@ export default {
       container.scrollTop = container.scrollHeight
     }
   },
+  watch: {
+    selectedEntryType (entryType) {
+      this.selectedEntryTypeHint = `DNA - ${entryType.parentDir.split('/')[3]}`
+    }
+  },
   created () {
     this.$store.dispatch('builder/initialise')
     this.$store.dispatch('appStore/initialise')
   },
   mounted () {
     this.$store.dispatch('builder/getDnaPaths')
+    this.$store.dispatch('builder/getDnaEntryTypes')
     this.setCodeWindowHeight()
   }
 }

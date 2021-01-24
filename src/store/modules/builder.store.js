@@ -29,6 +29,7 @@ export default {
     finished: false,
     treeItems: [],
     dnaPaths: [],
+    dnaEntryTypes: [],
     openFiles: [],
     selectedTab: -1,
     openFile: {},
@@ -45,8 +46,18 @@ export default {
     },
     currentBranch: undefined,
     currentFiles: [],
+    currentChanges: {
+      newFiles: [],
+      updatedFiles: [],
+      deletedFiles: []
+    },
     committedFiles: [],
     commits: [],
+    mergeChanges: {
+      mergedNewFiles: [],
+      mergedUpdatedFiles: [],
+      mergedDeletedFiles: []
+    },
     fileTypes: {
       gitignore: 'mdi-git',
       editorconfig: 'mdi-code-brackets',
@@ -124,15 +135,15 @@ export default {
       })
 
       state.socket.on('TERMINAL_STDOUT', data => {
-        console.log('TERMINAL_STDOUT', data)
+        // console.log('TERMINAL_STDOUT', data)
         commit('stdOutMessage', data)
       })
       state.socket.on('TERMINAL_ERROR', data => {
-        console.log('TERMINAL_ERROR', data)
+        // console.log('TERMINAL_ERROR', data)
         commit('stdOutMessage', data)
       })
       state.socket.on('TERMINAL_EXIT', data => {
-        console.log('TERMINAL_EXIT', data)
+        // console.log('TERMINAL_EXIT', data)
         commit('stdOutMessage', data)
       })
 
@@ -245,6 +256,17 @@ export default {
         commit('dnaPaths', dnaPaths)
       })
     },
+    getDnaEntryTypes ({ state, commit }) {
+      state.db.currentFiles.toArray(entries => {
+        entries.filter(f => f.parentDir === `/${state.applicationName}/dna/`).forEach(dnaPath => {
+          const types = entries.filter(f => f.parentDir === `${dnaPath.parentDir}${dnaPath.name}/zomes/${dnaPath.name}/src/entries/`)
+          types.forEach(et => {
+            et.testPath = `/${state.applicationName}/dna/${et.parentDir.split('/')[3]}/tests/src/`
+          })
+          commit('setDnaEntryTypes', types)
+        })
+      })
+    },
     async createDirectory ({ state }, payload) {
       state.db.currentFiles.put({
         parentDir: payload.parentDir,
@@ -260,7 +282,6 @@ export default {
       // )
     },
     async createFile ({ state }, payload) {
-      console.log(payload)
       state.db.transaction('rw', state.db.currentFiles, async () => {
         await state.db.currentFiles.put({
           parentDir: payload.parentDir,
@@ -277,28 +298,23 @@ export default {
       // )
     },
     async renameEntryType ({ state }, payload) {
-      // const name = payload.name
-      // const oldName = payload.oldName
-      // const newName = payload.newName
-      // state.socket.emit(
-      //   'RENAME_ENTRY_TYPE',
-      //   { name, oldName, newName },
-      //   success => {
-      //     console.log(success)
-      //   }
-      // )
+      state.db.currentFiles.clear().then(() => {
+        state.db.currentFiles.put({
+          parentDir: '/',
+          name,
+          type: 'dir'
+        })
+      })
+      const name = payload.name
+      const entryTypeToDuplicate = payload.entryTypeToDuplicate
+      const newName = payload.newName
+      state.socket.emit('RENAME_ENTRY_TYPE', { name, entryTypeToDuplicate, newName })
     },
     async duplicateEntryType ({ state }, payload) {
-      // const name = payload.name
-      // const oldName = payload.oldName
-      // const newName = payload.newName
-      // state.socket.emit(
-      //   'DUPLICATE_ENTRY_TYPE',
-      //   { name, oldName, newName },
-      //   success => {
-      //     console.log(success)
-      //   }
-      // )
+      const name = payload.name
+      const entryTypeToDuplicate = payload.entryTypeToDuplicate
+      const newName = payload.newName
+      state.socket.emit('DUPLICATE_ENTRY_TYPE', { name, entryTypeToDuplicate, newName })
     },
     async createApplication ({ state, commit }, payload) {
       const name = payload.name
@@ -312,13 +328,12 @@ export default {
       state.socket.emit('CREATE_APPLICATION', { name, preset })
     },
     async addModule ({ state }, payload) {
-      console.log(payload)
       const name = payload.name
       const plugin = payload.plugin
       state.socket.emit('ADD_MODULE', { name, plugin })
     },
     async recurseApplicationFiles ({ state }, payload) {
-      const name = 'testrepo' // payload.name
+      const name = payload.name
       state.db.currentFiles.clear().then(result => {
         state.db.currentFiles.put({
           parentDir: '/',
@@ -328,8 +343,45 @@ export default {
         state.socket.emit('RECURSE_APPLICATION_FILES', { name })
       })
     },
-    commitChanges ({ state, getters, commit }, payload) {
-      const changes = getters.changes
+    getCurrentChanges ({ state, commit }) {
+      const newFiles = []
+      const updatedFiles = []
+      const deletedFiles = []
+      state.currentFiles.forEach(file => {
+        const lastCommitFile = state.committedFiles.find(
+          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
+        )
+        if (lastCommitFile === undefined) {
+          newFiles.push(file)
+        } else {
+          if (file.content !== lastCommitFile.content) {
+            const dmp = new DiffMatchPatch()
+            const patches = dmp.patch_make(lastCommitFile.content, file.content)
+            const patch = dmp.patch_toText(patches)
+            const update = { ...file }
+            delete update.content
+            update.patch = patch
+            updatedFiles.push(update)
+          }
+        }
+      })
+      state.committedFiles.forEach(file => {
+        const currentBranchFile = state.currentFiles.find(
+          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
+        )
+        if (currentBranchFile === undefined) {
+          delete file.content
+          deletedFiles.push(file)
+        }
+      })
+      commit('setCurrentChanges', {
+        newFiles,
+        updatedFiles,
+        deletedFiles
+      })
+    },
+    commitChanges ({ state, commit }, payload) {
+      const changes = state.currentChanges
       const message = payload.commitMessage
       let type = 'commit'
       if (state.commits.length === 0) type = 'branch'
@@ -351,6 +403,11 @@ export default {
       state.db.currentFiles.toArray(files => {
         state.db.committedFiles.bulkPut(files)
         commit('committedFiles', files)
+      })
+      commit('setCurrentChanges', {
+        newFiles: [],
+        updatedFiles: [],
+        deletedFiles: []
       })
     },
     createBranch ({ state, commit }, payload) {
@@ -381,7 +438,6 @@ export default {
       })
     },
     changeBranch ({ state, commit, getters }, payload) {
-      console.log(payload)
       const currentBranch = payload
       localStorage.setItem('commitUuid', currentBranch.uuid)
       commit('setCurrentBranch', currentBranch)
@@ -390,26 +446,131 @@ export default {
       state.db.committedFiles.clear()
       commit('currentFiles', [])
       commit('committedFiles', [])
-      const branchFiles = []
+      let branchFiles = []
       branchCommits.forEach(bc => {
-        bc.newFiles.forEach(file => branchFiles.push(file))
+        bc.newFiles.forEach(file => {
+          const keyFile = { ...file, key: `${file.parentDir}${file.name}` }
+          branchFiles.push(keyFile)
+        })
         bc.updatedFiles.forEach(update => {
-          console.log(update)
-          const fileToUpdate = branchFiles.filter(file => file.parentDir === update.parentDir).find(file => file.name === update.name)
-          console.log(fileToUpdate)
+          const fileToUpdate = branchFiles.find(file => file.key === `${update.parentDir}${update.name}`)
           const dmp = new DiffMatchPatch()
           const patches = dmp.patch_fromText(update.patch)
           const result = dmp.patch_apply(patches, fileToUpdate.content)
-          console.log(result)
           fileToUpdate.content = result[0]
         })
+        bc.deletedFiles.forEach(deleteFile => {
+          branchFiles = branchFiles.filter(file => file.key !== `${deleteFile.parentDir}${deleteFile.name}`)
+        })
       })
+      branchFiles.forEach(file => delete file.key)
       state.db.currentFiles.bulkPut(branchFiles)
       state.db.committedFiles.bulkPut(branchFiles)
       commit('currentFiles', branchFiles)
       commit('committedFiles', branchFiles)
       state.socket.emit('CHANGE_BRANCH', { name: state.applicationName, files: branchFiles })
       commit('incrementTreeRefreshKey')
+    },
+    getMergeTargetChanges ({ state, commit }) {
+      const parentBranches = state.currentBranch.parentBranch.split('/')
+      const mergeTargetBranch = parentBranches[parentBranches.length - 2]
+      if (mergeTargetBranch === '') return
+      const newFiles = []
+      const updatedFiles = []
+      const deletedFiles = []
+      // get aggregated changes to current branch
+      const firstCommit = state.commits.filter(commit => commit.branch === state.currentBranch.branch).find(commit => commit.type === 'branch')
+      state.currentFiles.forEach(file => {
+        file.key = `${file.parentDir}${file.name}`
+        const firstCommitFile = firstCommit.newFiles.find(
+          f => `${f.parentDir}${f.name}` === file.key
+        )
+        if (firstCommitFile === undefined) {
+          newFiles.push(file)
+        } else {
+          console.log(file)
+          console.log(firstCommitFile)
+          if (file.content !== firstCommitFile.content) {
+            const dmp = new DiffMatchPatch()
+            const patches = dmp.patch_make(firstCommitFile.content, file.content)
+            const patch = dmp.patch_toText(patches)
+            const update = { ...file }
+            delete update.content
+            update.patch = patch
+            updatedFiles.push(update)
+          }
+        }
+      })
+      firstCommit.newFiles.forEach(file => {
+        const currentBranchFile = state.currentFiles.find(
+          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
+        )
+        if (currentBranchFile === undefined) {
+          file.key = `${file.parentDir}${file.name}`
+          delete file.content
+          deletedFiles.push(file)
+        }
+      })
+      // get target branch
+      const mergeTargetBranchCommits = state.commits.filter(commit => commit.branch === mergeTargetBranch).sort((a, b) => a.timestamp > b.timestamp)
+      console.log('🚀 ~ file: builder.store.js ~ line 461 ~ getMergeTargetChanges ~ mergeTargetBranchCommits', mergeTargetBranchCommits)
+      let mergeTargetBranchFiles = []
+      mergeTargetBranchCommits.forEach(bc => {
+        bc.newFiles.forEach(file => {
+          const keyFile = { ...file, key: `${file.parentDir}${file.name}` }
+          mergeTargetBranchFiles.push(keyFile)
+        })
+        bc.updatedFiles.forEach(update => {
+          const fileToUpdate = mergeTargetBranchFiles.find(file => file.key === `${update.parentDir}${update.name}`)
+          const dmp = new DiffMatchPatch()
+          const patches = dmp.patch_fromText(update.patch)
+          const result = dmp.patch_apply(patches, fileToUpdate.content)
+          fileToUpdate.content = result[0]
+        })
+        bc.deletedFiles.forEach(deleteFile => {
+          mergeTargetBranchFiles = mergeTargetBranchFiles.filter(file => file.key !== `${deleteFile.parentDir}${deleteFile.name}`)
+        })
+      })
+      // test changes to merge target
+      const mergedNewFiles = []
+      const mergedUpdatedFiles = []
+      let mergedDeletedFiles = []
+      newFiles.forEach(newFile => {
+        // check if newFile has been added to target branch
+        const mergeFile = mergeTargetBranchFiles.find(
+          f => `${f.parentDir}${f.name}` === newFile.key
+        )
+        if (mergeFile === undefined) {
+          mergedNewFiles.push(newFile)
+        } else {
+          if (newFile.content !== mergeFile.content) {
+            updatedFiles.push(newFile)
+          }
+        }
+      })
+      updatedFiles.forEach(updatedFile => {
+        const mergeFile = mergeTargetBranchFiles.find(
+          f => `${f.parentDir}${f.name}` === updatedFile.key
+        )
+        if (mergeFile === undefined) {
+          mergedDeletedFiles.push(updatedFile)
+        } else {
+          if (updatedFile.content !== mergeFile.content) {
+            const dmp = new DiffMatchPatch()
+            const patches = dmp.patch_fromText(updatedFile.patch)
+            const result = dmp.patch_apply(patches, mergeFile.content)
+            mergeFile.content = result[0]
+            mergeFile.patchOk = result[1]
+            mergedUpdatedFiles.push(mergeFile)
+          }
+        }
+      })
+      mergedDeletedFiles = deletedFiles
+      commit('setMergeChanges', {
+        mergedNewFiles,
+        mergedUpdatedFiles,
+        mergedDeletedFiles
+      })
     },
     mergeBranch ({ state, getters, commit }, payload) {
       const changes = getters.changes
@@ -531,19 +692,11 @@ export default {
       })
     },
     async cloneWebPart ({ state, dispatch }, payload) {
-      // const webPartType = payload.webPartType
-      // const template = payload.template
-      // const name = payload.name
-      // const webPartName = payload.webPartName
-      console.log(payload)
-      // state.socket.emit(
-      //   'CLONE_WEB_PART',
-      //   { webPartType, template, name, webPartName },
-      //   message => {
-      //     console.log(message)
-      //     dispatch('recurseApplicationFiles', { name })
-      //   }
-      // )
+      const webPartType = payload.webPartType
+      const template = payload.template
+      const name = payload.name
+      const webPartName = payload.webPartName
+      state.socket.emit('CLONE_WEB_PART', { webPartType, template, name, webPartName })
     },
     openFile ({ state, commit }, payload) {
       const alreadyOpenTab = state.openFiles.findIndex(
@@ -699,43 +852,6 @@ export default {
     }
   },
   getters: {
-    changes: state => {
-      const newFiles = []
-      const updatedFiles = []
-      const deletedFiles = []
-      state.currentFiles.forEach(file => {
-        const lastCommitFile = state.committedFiles.find(
-          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
-        )
-        if (lastCommitFile === undefined) {
-          newFiles.push(file)
-        } else {
-          if (file.content !== lastCommitFile.content) {
-            const dmp = new DiffMatchPatch()
-            const patches = dmp.patch_make(lastCommitFile.content, file.content)
-            const patch = dmp.patch_toText(patches)
-            const update = { ...file }
-            delete update.content
-            update.patch = patch
-            updatedFiles.push(update)
-          }
-        }
-      })
-      state.committedFiles.forEach(file => {
-        const currentBranchFile = state.currentFiles.find(
-          f => `${f.parentDir}${f.name}` === `${file.parentDir}${file.name}`
-        )
-        if (currentBranchFile === undefined) {
-          delete file.content
-          deletedFiles.push(file)
-        }
-      })
-      return {
-        newFiles,
-        updatedFiles,
-        deletedFiles
-      }
-    },
     branches: state => {
       if (state.commits.length === 0) {
         return [
@@ -785,6 +901,9 @@ export default {
           : { ...file, ...payload }
       )
     },
+    setCurrentChanges (state, payload) {
+      state.currentChanges = payload
+    },
     committedFiles (state, payload) {
       state.committedFiles = payload
     },
@@ -794,11 +913,17 @@ export default {
     addCommit (state, payload) {
       state.commits.push(payload)
     },
+    setMergeChanges (state, payload) {
+      state.mergeChanges = payload
+    },
     incrementTreeRefreshKey (state) {
       state.treeRefreshKey++
     },
     dnaPaths (state, payload) {
       state.dnaPaths = payload
+    },
+    setDnaEntryTypes (state, payload) {
+      state.dnaEntryTypes = payload
     },
     clearStdOutMessages (state) {
       state.stdOutMessages = []

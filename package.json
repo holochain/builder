@@ -6,10 +6,7 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "builder": "vue-cli-service serve --port 5200",
-    "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "vue-cli-service electron:serve",
-    "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps",
+    "vue": "./node_modules/@vue/cli/bin/vue.js",
     "start": "nf start"
   },
   "main": "background.js",
@@ -31,6 +28,7 @@
     "vuex": "^3.4.0"
   },
   "devDependencies": {
+    "@vue/cli": "^4.5.10",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-plugin-router": "~4.5.0",
@@ -39,8 +37,6 @@
     "@vue/eslint-config-standard": "^5.1.2",
     "@vuetify/vue-cli-plugin-presets": "^0.1.0-alpha.5",
     "babel-eslint": "^10.1.0",
-    "electron": "^9.0.0",
-    "electron-devtools-installer": "^3.1.0",
     "eslint": "^6.7.2",
     "eslint-config-vuetify": "^0.6.1",
     "eslint-plugin-import": "^2.20.2",
@@ -52,7 +48,6 @@
     "lodash": "^4.17.15",
     "sass": "^1.26.5",
     "sass-loader": "^8.0.2",
-    "vue-cli-plugin-electron-builder": "~2.0.0-rc.5",
     "vue-cli-plugin-vuetify": "latest",
     "vue-cli-plugin-vuetify-preset-reply": "~1.0.4",
     "vue-template-compiler": "^2.6.11",

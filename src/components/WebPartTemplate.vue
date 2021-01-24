@@ -12,10 +12,7 @@
       <v-btn
         color="action darken-1"
         text
-        @click="
-          cloneWebPart({ template: template.name, webPartType, name: applicationName, webPartName })
-        "
-      >
+        @click="$emit('close');cloneWebPart({ template: template.name, webPartType, name: applicationName, webPartName })">
         Add
       </v-btn>
     </v-card-actions>
