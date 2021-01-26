@@ -394,7 +394,7 @@ io.on('connection', socket => {
 
   socket.on('START_CONDUCTOR', (payload, callback) => {
     console.log('CONDUCTOR')
-    const conductorCmd = `nix-shell https://nightly.holochain.love --run "which holochain && RUST_LOG='[debug]=debug,[]=error' holochain -c ./devConductor/developer.yaml"`
+    const conductorCmd = `RUST_LOG='[debug]=debug,[]=error' holochain -c ./devConductor/developer.yaml"`
     console.log('CONDUCTOR', conductorCmd)
     conductor = spawn(conductorCmd, { shell: true })
     conductor.stderr.on('data', function (err) {
@@ -406,7 +406,7 @@ io.on('connection', socket => {
       socket.emit('CONDUCTOR_STDOUT', data.toString())
     })
     conductor.on('exit', function (exitCode) {
-      console.log('Child exited with code: ' + exitCode)
+      console.log('CONDUCTOR_EXIT with code: ' + exitCode)
       socket.emit('CONDUCTOR_EXIT', exitCode)
     })
   })
@@ -470,6 +470,20 @@ io.on('connection', socket => {
       console.log('Child exited with code: ' + exitCode)
       socket.emit('YARN_ADD_EXIT', exitCode)
     })
+  })
+
+  socket.on('REINSTALL_NODE_MODULES', (payload) => {
+    const yarnReinstallCmd = `cd ${devAppsDir}/${payload.name} && rm -rf node_modules && yarn install`
+      const yarnInstall = spawn(yarnReinstallCmd, { shell: true })
+      yarnInstall.stderr.on('data', function (err) {
+        socket.emit('TERMINAL_ERROR', err.toString())
+      })
+      yarnInstall.stdout.on('data', function (data) {
+        socket.emit('TERMINAL_STDOUT', data.toString())
+      })
+      yarnInstall.on('exit', function () {
+        socket.emit('TERMINAL_EXIT', 'REINSTALL_NODE_MODULES_FINISHED')
+      })
   })
 })
 io.on('error', () => {

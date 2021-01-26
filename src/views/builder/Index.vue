@@ -150,7 +150,7 @@
             >
             <v-list-item-title>Reset</v-list-item-title>
           </v-list-item>
-          <v-list-item key="manageDemoAgents" @click="testAgentsDialog = true;fetchAgents(conductor)">
+          <v-list-item key="manageDemoAgents"  v-if="!conductorStopped" @click="testAgentsDialog = true;fetchAgents(conductor)">
             <v-list-item-title>Agents</v-list-item-title>
           </v-list-item>
         </v-list>
@@ -211,8 +211,14 @@
           <v-list-item key="newYarnAdd">
             <v-list-item-title class="grey--text">Add Node Module</v-list-item-title>
           </v-list-item>
-          <v-list-item key="yarnReinstall">
-            <v-list-item-title class="grey--text">Reinstall Node Modules</v-list-item-title>
+          <v-list-item key="yarnReinstall"
+          @click="
+              stdMessagesDialog = true;
+              terminalTab = 0;
+              reinstallNodeModules({ name: applicationName });
+            "
+          >
+            <v-list-item-title>Reinstall Node Modules</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -254,7 +260,7 @@
             v-bind="attrs"
             v-on="on"
           >
-            {{ applicationName }} - <span v-if="currentBranch">{{ currentBranch.branch }}</span>
+            {{ applicationName }} <span v-if="currentBranch">({{ currentBranch.branch }})</span>
           </v-btn>
         </template>
         <span>Show the project details</span>
@@ -655,6 +661,7 @@ export default {
       'createFile',
       'recurseApplicationFiles',
       'lintFiles',
+      'reinstallNodeModules',
       'startWebServer',
       'stopWebServer',
       'startConductor',

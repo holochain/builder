@@ -188,7 +188,7 @@ export default {
         if (data.includes('Conductor ready')) {
           AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_URL, 10000).then(admin => {
             state.hcAdmin = admin
-            state.hcAdmin.attachAppInterface({ port: 0 }).then(appInterface => {
+            state.hcAdmin.attachAppInterface({ port: 44443 }).then(appInterface => {
               state.hcClient.appInterface = appInterface
             })
           })
@@ -310,6 +310,10 @@ export default {
       const name = payload.name
       const plugin = payload.plugin
       state.socket.emit('ADD_MODULE', { name, plugin })
+    },
+    async reinstallNodeModules ({ state }, payload) {
+      const name = payload.name
+      state.socket.emit('REINSTALL_NODE_MODULES', { name })
     },
     async recurseApplicationFiles ({ state }, payload) {
       const name = payload.name

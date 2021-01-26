@@ -19,7 +19,7 @@
           mdi-application-import
         </v-icon>
       </v-btn>
-      <v-btn v-if="agent.cellData" small icon :href="`http://localhost:4400${index + 1}?agentPubKey=${encodeURIComponent(agent.agentPubKey)}&${cells}&port=${hcClient.appInterface.port}`" target="_blank">
+      <v-btn v-if="agent.cellData" small icon :href="`http://localhost:4400${index + 1}?agentPubKey=${encodeURIComponent(agent.agentPubKey)}&${cells}&port=44444`" target="_blank">
         <v-icon>
           mdi-application
         </v-icon>
