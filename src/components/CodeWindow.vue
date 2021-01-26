@@ -8,6 +8,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import { codemirror } from 'vue-codemirror'
 import 'codemirror/lib/codemirror.css'
 import 'codemirror/mode/rust/rust.js'
@@ -27,6 +28,9 @@ export default {
   components: {
     codemirror
   },
+  computed: {
+    ...mapState('builder', ['refreshKey'])
+  },
   methods: {
     changes () {
       if (this.file.content !== this.internalContent) {
@@ -42,6 +46,9 @@ export default {
   watch: {
     height (val) {
       this.$refs.editor.codemirror.setSize(null, val)
+    },
+    refreshKey () {
+      this.internalContent = this.file.content
     }
   }
 }

@@ -15,7 +15,6 @@ function getFileType (fileName) {
   return fileType
 }
 function getFoldersAndFiles (parentDir, socket) {
-  console.log(parentDir)
   const entries = fs.readdirSync(parentDir, { withFileTypes: true })
   const folders = entries
     .filter(entry => entry.isDirectory())
@@ -27,7 +26,6 @@ function getFoldersAndFiles (parentDir, socket) {
     .filter(entry => entry.name !== '.wasm_target')
     .filter(entry => entry.name !== '.cargo')
   for (const folder of folders) {
-    console.log(folder.name)
     const folderEntries = fs.readdirSync(`${parentDir}${folder.name}/`, {
       withFileTypes: true
     })
@@ -46,6 +44,7 @@ function getFoldersAndFiles (parentDir, socket) {
     .filter(entry => entry.name !== '.DS_Store')
     .filter(entry => entry.name.includes('.dna.gz') === false)
   for (const file of files) {
+    let content = ''
     let fileExtension = getFileType(file.name)
     let contentPrefix = ''
     let fileEncoding = 'utf8'
@@ -53,11 +52,11 @@ function getFoldersAndFiles (parentDir, socket) {
       if (fileExtension === 'jpg') fileExtension = 'jpeg'
       fileEncoding = 'base64'
       contentPrefix = `data:image/${fileExtension};base64,`
+      content = `${contentPrefix}${fs.readFileSync(`${parentDir}${file.name}`, fileEncoding)}`
+    } else {
+      content = `${fs.readFileSync(`${parentDir}${file.name}`, fileEncoding)}`
     }
-    const content = `${contentPrefix}${fs.readFileSync(
-      `${parentDir}${file.name}`,
-      fileEncoding
-    )}`
+
     const newFile = {
       parentDir: parentDir.replace(`${devAppsDir}`, ''),
       name: file.name,
@@ -90,6 +89,31 @@ io.on('connection', socket => {
     )
   })
 
+  socket.on('SAVE_UPLOADED_IMAGE', (payload, callback) => {
+    const file = payload
+    console.log(payload)
+    const fileName = `${devAppsDir}${file.parentDir}${file.name}`
+    let content = ''
+    let fileExtension = getFileType(file.name)
+    if (fileExtension === 'jpg') fileExtension = 'jpeg'
+    const fileEncoding = 'base64'
+    const contentPrefix = `data:image/${fileExtension};base64,`
+    var buf = Buffer.from(file.data, 'base64')
+    fs.writeFileSync(fileName, buf)
+    content = `${contentPrefix}${fs.readFileSync(fileName, fileEncoding)}`
+    console.log(content.substring(0, 40))
+
+    const newFile = {
+      parentDir: file.parentDir.replace(`${devAppsDir}`, ''),
+      name: file.name,
+      type: 'file',
+      extension: fileExtension,
+      encoding: fileEncoding,
+      content: content
+    }
+    callback(newFile)
+  })
+
   socket.on('CREATE_DIRECTORY', (payload, callback) => {
     console.log('CREATE_DIRECTORY', payload)
     fs.mkdir(`${devAppsDir}/dev-apps/${payload.path}`, { recursive: true },
@@ -118,10 +142,29 @@ io.on('connection', socket => {
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true })
         }
-        if (file.type === 'file') fs.writeFileSync(`${dir}${file.name}`, file.content, { encoding: file.encoding })
+        if (file.type === 'file') {
+          if (['png', 'jpg', 'jpeg'].find(ext => ext === file.extension)) {
+            if (file.extension === 'jpg') file.extension = 'jpeg'
+            const data = file.content.replace(/^data:image\/\w+;base64,/, '')
+            var buf = Buffer.from(data, 'base64')
+            fs.writeFileSync(`${dir}${file.name}`, buf)
+          } else {
+            fs.writeFileSync(`${dir}${file.name}`, file.content, { encoding: file.encoding })
+          }
+        }
         socket.emit('TERMINAL_STDOUT', `${dir}${file.name}`)
       })
-      socket.emit('TERMINAL_EXIT', 'CHANGE_BRANCH_FINISHED')
+      const yarnInstallCmd = `cd ${devAppsDir}/${payload.name} && yarn install`
+      const yarnInstall = spawn(yarnInstallCmd, { shell: true })
+      yarnInstall.stderr.on('data', function (err) {
+        socket.emit('TERMINAL_ERROR', err.toString())
+      })
+      yarnInstall.stdout.on('data', function (data) {
+        socket.emit('TERMINAL_STDOUT', data.toString())
+      })
+      yarnInstall.on('exit', function () {
+        socket.emit('TERMINAL_EXIT', 'CHANGE_BRANCH_FINISHED')
+      })
     })
   })
 
@@ -318,16 +361,13 @@ io.on('connection', socket => {
     console.log('LINT_FILES', lintFiles)
     const fileLinter = spawn(lintFiles, { shell: true })
     fileLinter.stderr.on('data', function (err) {
-      console.error('STDERR:', err.toString())
       socket.emit('TERMINAL_ERROR', err.toString())
     })
     fileLinter.stdout.on('data', function (data) {
-      console.log('STDOUT:', data.toString())
       socket.emit('TERMINAL_STDOUT', data.toString())
     })
-    fileLinter.on('exit', function (exitCode) {
-      console.log('Child exited with code: ' + exitCode)
-      socket.emit('TERMINAL_EXIT', 'LINT_FILES_FINISHED')
+    fileLinter.on('exit', function () {
+      socket.emit('LINT_FILES_EXIT', 'LINT_FILES_FINISHED')
     })
   })
 

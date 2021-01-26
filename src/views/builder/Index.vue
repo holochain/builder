@@ -233,10 +233,10 @@
         <v-list dense>
            <v-list-item
             key="refreshFiles"
-            @click="recurseApplicationFiles({ name: applicationName });
+            @click="fileStatusDrawerOpen = true;
+            recurseApplicationFiles({ name: applicationName });
             getCurrentChanges();
-            getMergeTargetChanges();
-            fileStatusDrawerOpen = true"
+            getMergeTargetChanges()"
           >
             <v-list-item-title>Get Status</v-list-item-title>
           </v-list-item>
@@ -254,7 +254,7 @@
             v-bind="attrs"
             v-on="on"
           >
-            {{ applicationName }}
+            {{ applicationName }} - <span v-if="currentBranch">{{ currentBranch.branch }}</span>
           </v-btn>
         </template>
         <span>Show the project details</span>
@@ -635,6 +635,7 @@ export default {
       'dnaTemplates',
       'webPartTemplates',
       'testDnaMessages',
+      'currentBranch',
       'currentFiles',
       'sharedFiles'
     ]),

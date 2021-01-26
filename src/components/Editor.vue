@@ -20,36 +20,42 @@
           :height="height - 44"
           @edited="fileEdited"
         />
-        <v-image-input
+        <image-editor
           v-if="f.options.mode === 'image'"
-          v-model="f.content"
-          :image-quality="1"
-          clearable
-          image-format="jpeg,png"
-          :image-width="imageWidth"
-          :image-height="imageHeight"
-          dark
-          image-min-scaling="contain"
+          :file="f"
+          :imageHeight="imageHeight"
+          :imageWidth="imageWidth"
+          @image-uploaded="imageUploaded"
+          class="pa-3"
         />
       </v-tab-item>
     </v-tabs>
   </v-card>
 </template>
 <script>
-import VImageInput from 'vuetify-image-input/a-la-carte'
-import { mapState, mapMutations } from 'vuex'
+import { mapState, mapMutations, mapActions } from 'vuex'
 export default {
   name: 'Editor',
   props: ['height'],
+  data () {
+    return {
+      imageHeight: 300,
+      imageWidth: 300
+    }
+  },
   components: {
     CodeWindow: () => import('./CodeWindow.vue'),
-    VImageInput
+    ImageEditor: () => import('./ImageEditor.vue')
   },
   methods: {
+    ...mapActions('builder', ['saveOpenImage']),
     ...mapMutations('builder', ['closeFile', 'openFileEdited']),
     fileEdited (file, edited) {
       file.edited = edited
       this.openFileEdited(file)
+    },
+    imageUploaded (fileToUpload, file) {
+      this.saveOpenImage({ fileToUpload, file })
     }
   },
   computed: {

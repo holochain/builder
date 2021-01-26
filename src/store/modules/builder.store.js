@@ -147,19 +147,6 @@ export default {
         commit('stdOutMessage', data)
       })
 
-      // state.socket.on('ADD_MODULE_STDOUT', data => {
-      //   console.log('ADD_MODULE_STDOUT', data)
-      //   commit('stdOutMessage', data)
-      // })
-      // state.socket.on('ADD_MODULE_ERROR', data => {
-      //   console.log('ADD_MODULE_ERROR', data)
-      //   commit('stdOutMessage', data)
-      // })
-      // state.socket.on('ADD_MODULE_EXIT', data => {
-      //   console.log('ADD_MODULE_EXIT', data)
-      //   commit('socketFinished', true)
-      // })
-
       state.socket.on('RECURSE_APPLICATION_FILES', file => {
         // console.log('RECURSE_APPLICATION_FILES', file)
         state.db.currentFiles.put(file)
@@ -176,19 +163,11 @@ export default {
         dispatch('getDnaPaths')
       })
 
-      // state.socket.on('LINT_FILES_STDOUT', data => {
-      //   console.log('LINT_FILES_STDOUT', data)
-      //   commit('stdOutMessage', data)
-      // })
-      // state.socket.on('LINT_FILES_ERROR', data => {
-      //   console.log('LINT_FILES_ERROR', data)
-      //   commit('stdOutMessage', data)
-      // })
-      // state.socket.on('LINT_FILES_EXIT', data => {
-      //   console.log('LINT_FILES_EXIT', data)
-      //   commit('stdOutMessage', 'LINT_FILES_EXIT')
-      //   commit('socketFinished', true)
-      // })
+      state.socket.on('LINT_FILES_EXIT', data => {
+        console.log('LINT_FILES_EXIT', data)
+        commit('stdOutMessage', 'LINT_FILES_EXIT')
+        dispatch('refreshOpenFiles')
+      })
 
       state.socket.on('SERVE_WEB_APP_STDOUT', data => {
         console.log('SERVE_WEB_APP_STDOUT', data)
@@ -383,6 +362,7 @@ export default {
     commitChanges ({ state, commit }, payload) {
       const changes = state.currentChanges
       const message = payload.commitMessage
+      const author = payload.author
       let type = 'commit'
       if (state.commits.length === 0) type = 'branch'
       const newCommit = {
@@ -391,6 +371,7 @@ export default {
         parentBranch: state.currentBranch.parentBranch,
         type,
         message,
+        author,
         timestamp: Date.now(),
         newFiles: changes.newFiles,
         updatedFiles: changes.updatedFiles,
@@ -411,12 +392,14 @@ export default {
       })
     },
     createBranch ({ state, commit }, payload) {
+      const author = payload.author
       const newCommit = {
         uuid: uuidv4(),
         branch: payload.name,
         parentBranch: `${state.currentBranch.parentBranch}${state.currentBranch.branch}/`,
         type: 'branch',
         message: `New Branch ${payload.name}`,
+        author,
         timestamp: Date.now(),
         newFiles: state.currentFiles,
         updatedFiles: [],
@@ -472,6 +455,7 @@ export default {
       commit('incrementTreeRefreshKey')
     },
     getMergeTargetChanges ({ state, commit }) {
+      if (state.currentBranch === undefined) return
       const parentBranches = state.currentBranch.parentBranch.split('/')
       const mergeTargetBranch = parentBranches[parentBranches.length - 2]
       if (mergeTargetBranch === '') return
@@ -488,8 +472,6 @@ export default {
         if (firstCommitFile === undefined) {
           newFiles.push(file)
         } else {
-          console.log(file)
-          console.log(firstCommitFile)
           if (file.content !== firstCommitFile.content) {
             const dmp = new DiffMatchPatch()
             const patches = dmp.patch_make(firstCommitFile.content, file.content)
@@ -513,7 +495,6 @@ export default {
       })
       // get target branch
       const mergeTargetBranchCommits = state.commits.filter(commit => commit.branch === mergeTargetBranch).sort((a, b) => a.timestamp > b.timestamp)
-      console.log('🚀 ~ file: builder.store.js ~ line 461 ~ getMergeTargetChanges ~ mergeTargetBranchCommits', mergeTargetBranchCommits)
       let mergeTargetBranchFiles = []
       mergeTargetBranchCommits.forEach(bc => {
         bc.newFiles.forEach(file => {
@@ -572,30 +553,42 @@ export default {
         mergedDeletedFiles
       })
     },
-    mergeBranch ({ state, getters, commit }, payload) {
-      const changes = getters.changes
-      const message = payload.message
-      let type = 'merge'
-      if (state.commits.length === 0) type = 'branch'
+    mergeBranch ({ state, commit, dispatch }, payload) {
+      const message = payload.mergeMessage
+      const author = payload.author
+      const type = 'merge'
+      const parentBranches = state.currentBranch.parentBranch.split('/')
+      const mergeTargetBranch = parentBranches[parentBranches.length - 2]
       const newCommit = {
         uuid: uuidv4(),
-        branch: state.currentBranch.branch,
-        parentBranch: state.currentBranch.parentBranch,
+        branch: mergeTargetBranch,
+        parentBranch: `${state.currentBranch.parentBranch}${state.currentBranch.branch}`,
         type,
         message,
+        author,
         timestamp: Date.now(),
-        newFiles: changes.newFiles,
-        updatedFiles: changes.updatedFiles,
-        deletedFiles: changes.deletedFiles
+        newFiles: state.mergeChanges.mergedNewFiles,
+        updatedFiles: state.mergeChanges.mergedUpdatedFiles,
+        deletedFiles: state.mergeChanges.mergedDeletedFiles
       }
       commit('addCommit', newCommit)
       localStorage.setItem('commitUuid', newCommit.uuid)
       state.db.commits.put(newCommit)
-      state.db.committedFiles.clear()
-      state.db.currentFiles.toArray(files => {
-        state.db.committedFiles.bulkPut(files)
-        commit('committedFiles', files)
+      let targetBranch = {
+        parentBranch: '/',
+        branch: 'main',
+        uuid: newCommit.uuid
+      }
+      if (mergeTargetBranch !== 'main') {
+        const targetBranchName = parentBranches[parentBranches.length - 4]
+        targetBranch = state.commits.filter(commit => commit.type === 'branch').find(commit => commit.branch === targetBranchName)
+      }
+      commit('setMergeChanges', {
+        mergedNewFiles: [],
+        mergedUpdatedFiles: [],
+        mergedDeletedFiles: []
       })
+      dispatch('changeBranch', targetBranch)
     },
     async lintFiles ({ state, dispatch, commit }, payload) {
       const name = payload.name
@@ -611,17 +604,16 @@ export default {
       commit('clearTestDnaMessages')
       state.socket.emit('TEST_DNA', { path })
     },
-    refreshFiles ({ state, commit }) {
-      console.log('refreshFiles')
+    refreshOpenFiles ({ state, commit }) {
+      console.log('refreshOpenFiles')
       state.openFiles.map(oF => {
-        console.log(oF.parentDir, oF.name)
         state.db.currentFiles
           .where('[parentDir+name]')
           .equals([oF.parentDir, oF.name])
           .first()
           .then(file => {
             console.log(file)
-            commit('setFile', file)
+            commit('updateOpenFile', file)
           })
       })
     },
@@ -769,6 +761,35 @@ export default {
         commit('openFile', state.openFiles[alreadyOpenTab])
         commit('selectedTab', alreadyOpenTab)
       }
+    },
+    saveOpenImage ({ state, commit }, payload) {
+      console.log(payload)
+      const file = payload.file
+      const fileToUpload = payload.fileToUpload
+      var reader = new FileReader()
+      var rawData = new ArrayBuffer()
+      reader.onload = function (e) {
+        rawData = e.target.result
+        state.socket.emit('SAVE_UPLOADED_IMAGE', {
+          name: file.name,
+          parentDir: file.parentDir,
+          data: rawData
+        }, (result) => {
+          console.log(result)
+          const updatedImageFile = {
+            parentDir: result.parentDir,
+            name: result.name,
+            content: result.content,
+            encoding: result.encoding,
+            extension: result.extension,
+            type: 'file'
+          }
+          state.db.currentFiles.put(updatedImageFile)
+          commit('updateOpenFile', updatedImageFile)
+        })
+        console.log('Image content read.')
+      }
+      reader.readAsArrayBuffer(fileToUpload)
     },
     fetchAgents ({ state, commit }, payload) {
       const conductor = { ...payload }
@@ -958,7 +979,7 @@ export default {
     socketFinished (state, payload) {
       state.finished = payload
     },
-    setFile (state, payload) {
+    updateOpenFile (state, payload) {
       state.openFiles = state.openFiles.map(file =>
         `${file.parentDir}/${file.name}` !==
         `${payload.parentDir}/${payload.name}`

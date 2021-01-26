@@ -13,7 +13,9 @@
         @change="changeBranch"
         hide-details
         dense
-        class="mt-0 ml-2"
+        flat
+        solo-inverted
+        class="pa-0 mt-0 ml-2"
       />
       <v-spacer></v-spacer>
       <v-icon @click="$emit('close')">
@@ -424,6 +426,7 @@ export default {
     return {
       showChanges: false,
       selectedBranch: undefined,
+      author: 'Philip Beadle',
       newBranchName: '',
       commitMessage: '',
       mergeMessage: '',
@@ -483,18 +486,28 @@ export default {
       }
       return filePath
     },
+    getFormattedTimestamp (timestamp) {
+      const commitDate = new Date(timestamp)
+      return `${commitDate.getFullYear()}.${(commitDate.getMonth() + 1)}.${commitDate.getDate()}:${commitDate.getHours()}:${commitDate.getMinutes()}`
+    },
     showBranchGraph () {
       this.showChanges = false
       process.nextTick(() => {
         this.graphContainer = document.getElementById('gitgraphcard')
-        this.gitgraph = createGitgraph(this.graphContainer, {
-          mode: 'compact'
-        })
+        this.gitgraph = createGitgraph(this.graphContainer)
         let graphBranch
         if (this.commits.length === 0) {
           graphBranch = this.gitgraph
             .branch('main')
-            .commit('New repository')
+            .commit({
+              subject: `New Repository - ${this.author} - ${this.getFormattedTimestamp(Date.now())}`,
+              style: {
+                message: {
+                  displayHash: false,
+                  displayAuthor: false
+                }
+              }
+            })
         } else {
           this.commits.sort((a, b) => a.timestamp - b.timestamp).forEach(commit => {
             const parentBranchParts = commit.parentBranch.split('/')
@@ -503,24 +516,60 @@ export default {
               if (commit.branch === 'main') {
                 graphBranch = this.gitgraph
                   .branch('main')
-                  .commit('New repository')
+                  .commit({
+                    subject: `New Repository - ${commit.author} - ${this.getFormattedTimestamp(commit.timestamp)}`,
+                    style: {
+                      message: {
+                        displayHash: false,
+                        displayAuthor: false
+                      }
+                    }
+                  })
               } else {
                 graphBranch = this.gitgraph
                   .branch(parentBranchName)
                   .branch(commit.branch)
-                  .commit(`Branched ${commit.branch} from ${parentBranchName}`)
+                  .commit({
+                    subject: `Branched ${commit.branch} from ${parentBranchName} - ${commit.author} - ${this.getFormattedTimestamp(commit.timestamp)}`,
+                    style: {
+                      message: {
+                        displayHash: false,
+                        displayAuthor: false
+                      }
+                    }
+                  })
               }
             } else if (commit.type === 'commit') {
-              graphBranch.commit(commit.message)
+              graphBranch.commit({
+                subject: `${commit.message.substring(0, 50)} - ${commit.author} - ${this.getFormattedTimestamp(commit.timestamp)}`,
+                style: {
+                  message: {
+                    displayHash: false,
+                    displayAuthor: false
+                  }
+                }
+              })
             } else {
-              this.gitgraph.branch(parentBranchName).merge(graphBranch, commit.message)
+              this.gitgraph.branch(parentBranchName).merge({
+                branch: graphBranch,
+                fastForward: false,
+                commitOptions: {
+                  subject: `${commit.message} - ${commit.author} - ${this.getFormattedTimestamp(commit.timestamp)}`,
+                  style: {
+                    message: {
+                      displayHash: false,
+                      displayAuthor: false
+                    }
+                  }
+                }
+              })
             }
           })
         }
       })
     },
     newBranch () {
-      this.createBranch({ name: this.newBranchName })
+      this.createBranch({ name: this.newBranchName, author: this.author })
       this.newBranchName = ''
     },
     newBranchFromCommit (commit) {
@@ -530,19 +579,19 @@ export default {
     },
     commit () {
       if (this.commitMessage !== '') {
-        this.commitChanges({ commitMessage: this.commitMessage })
+        this.commitChanges({ commitMessage: this.commitMessage, author: this.author })
         this.commitMessage = ''
       }
     },
     merge () {
       if (this.mergeMessage !== '') {
-        this.mergeBranch({ message: this.mergeMessage })
+        this.mergeBranch({ mergeMessage: this.mergeMessage, author: this.author })
         this.mergeMessage = ''
       }
     }
   },
   watch: {
-    currentBranch (now, prev) {
+    currentBranch () {
       this.showBranchGraph()
     }
   }
@@ -552,7 +601,7 @@ export default {
 .tab-card {
   box-sizing: border-box;
   overflow-y: auto;
-  height: 90vh;
+  height: calc(100vh - 71px);
 }
 .graph-container {
   box-sizing: border-box;
@@ -566,5 +615,12 @@ export default {
 }
 ul {
   list-style-type: none;
+}
+.foreignObject {
+  padding-top: 3px;
+  display: block;
+  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 </style>

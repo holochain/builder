@@ -52,7 +52,7 @@ export default {
         name: 'Simple',
         type: 'application',
         preview: require('../../assets/img/shop/Simple1.png'),
-        description: 'Simple is a complete Holochain application that you can use as a starting point for your own app. Simple let\'s you create, update, list and delete Things. Get it? The Simple Things in life :) This app shows you how to interact with Holochain from a modern web app built with Vue.js and Vuetify. Simple also takes advantage of the IndexDB, available in all browsers and has a lot of storage, to speed up the experience for people using your app.',
+        description: 'Simple is a complete Holochain application that you can use as a starting point for your own app. Simple let\'s you create, update, list and delete Things. Get it? The Simple Things in life :) This app shows you how to interact with Holochain from a modern web app built with Vue.js and Vuetify. Simple also takes advantage of the IndexDB, available in all browsers and has a lot of storage, to speed up the experience for people using your app. You can also use Simple as a shell app and install Holochain Modules to create your own app.',
         developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/Simple1.png'),
