@@ -239,11 +239,7 @@
         <v-list dense>
            <v-list-item
             key="refreshFiles"
-            @click="fileStatusDrawerOpen = true;
-            recurseApplicationFiles({ name: applicationName });
-            getCurrentChanges();
-            getMergeTargetChanges()"
-          >
+            @click="getStatus({ name: applicationName });fileStatusDrawerOpen = true">
             <v-list-item-title>Get Status</v-list-item-title>
           </v-list-item>
         </v-list>
@@ -659,7 +655,7 @@ export default {
       'openApplication',
       'createDirectory',
       'createFile',
-      'recurseApplicationFiles',
+      'getStatus',
       'lintFiles',
       'reinstallNodeModules',
       'startWebServer',

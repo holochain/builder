@@ -45,9 +45,9 @@
           dark
         >
           <v-card
-            id="gitgraphcard"
+            :id="`gitgraphcard${treeRefreshKey}`"
             class="graph-container mb-2"
-            :key="`${currentBranch.parentBranch}${currentBranch.branch}`"
+            :key="treeRefreshKey"
             dark
           >
           </v-card>
@@ -267,18 +267,6 @@
                   persistent-hint
                   :hint="`Commit changes to ${currentBranch.branch}`"
                 />
-                <v-textarea
-                  v-if="readyToMerge"
-                  v-model="mergeMessage"
-                  label="Merge Message"
-                  append-icon="mdi-source-merge"
-                  @click:append="merge"
-                  @keydown.enter="merge"
-                  outlined
-                  dense
-                  persistent-hint
-                  :hint="mergeHint"
-                />
               </v-col>
             </v-row>
           </v-card-text>
@@ -425,7 +413,6 @@ export default {
   data () {
     return {
       showChanges: false,
-      selectedBranch: undefined,
       author: 'Philip Beadle',
       newBranchName: '',
       commitMessage: '',
@@ -436,7 +423,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('builder', ['currentBranch', 'currentFiles', 'currentChanges', 'committedFiles', 'commits', 'mergeChanges', 'fileTypes']),
+    ...mapState('builder', ['currentBranch', 'currentFiles', 'currentChanges', 'committedFiles', 'commits', 'mergeChanges', 'fileTypes', 'treeRefreshKey']),
     ...mapGetters('builder', ['branchCommits']),
     branches () {
       return this.$store.getters['builder/branches']
@@ -491,13 +478,13 @@ export default {
       return `${commitDate.getFullYear()}.${(commitDate.getMonth() + 1)}.${commitDate.getDate()}:${commitDate.getHours()}:${commitDate.getMinutes()}`
     },
     showBranchGraph () {
-      this.showChanges = false
       process.nextTick(() => {
-        this.graphContainer = document.getElementById('gitgraphcard')
-        this.gitgraph = createGitgraph(this.graphContainer)
+        const graphContainer = document.getElementById(`gitgraphcard${this.treeRefreshKey}`)
+        const gitgraph = createGitgraph(graphContainer)
+        console.log('🚀 ~ file: FileSharing.vue ~ line 484 ~ process.nextTick ~ gitgraph', gitgraph)
         let graphBranch
         if (this.commits.length === 0) {
-          graphBranch = this.gitgraph
+          graphBranch = gitgraph
             .branch('main')
             .commit({
               subject: `New Repository - ${this.author} - ${this.getFormattedTimestamp(Date.now())}`,
@@ -514,7 +501,7 @@ export default {
             const parentBranchName = parentBranchParts[parentBranchParts.length - 2]
             if (commit.type === 'branch') {
               if (commit.branch === 'main') {
-                graphBranch = this.gitgraph
+                graphBranch = gitgraph
                   .branch('main')
                   .commit({
                     subject: `New Repository - ${commit.author} - ${this.getFormattedTimestamp(commit.timestamp)}`,
@@ -526,7 +513,7 @@ export default {
                     }
                   })
               } else {
-                graphBranch = this.gitgraph
+                graphBranch = gitgraph
                   .branch(parentBranchName)
                   .branch(commit.branch)
                   .commit({
@@ -550,7 +537,7 @@ export default {
                 }
               })
             } else {
-              this.gitgraph.branch(parentBranchName).merge({
+              gitgraph.branch(parentBranchName).merge({
                 branch: graphBranch,
                 fastForward: false,
                 commitOptions: {
@@ -592,6 +579,9 @@ export default {
   },
   watch: {
     currentBranch () {
+      this.showBranchGraph()
+    },
+    treeRefreshKey () {
       this.showBranchGraph()
     }
   }

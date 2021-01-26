@@ -35,7 +35,7 @@ function getFoldersAndFiles (parentDir, socket) {
         name: folder.name,
         type: 'dir'
       }
-      socket.emit('RECURSE_APPLICATION_FILES', newDirectory)
+      socket.emit('GET_STATUS', newDirectory)
       getFoldersAndFiles(`${parentDir}${folder.name}/`, socket)
     }
   }
@@ -65,7 +65,7 @@ function getFoldersAndFiles (parentDir, socket) {
       encoding: fileEncoding,
       content: content
     }
-    socket.emit('RECURSE_APPLICATION_FILES', newFile)
+    socket.emit('GET_STATUS', newFile)
   }
 }
 
@@ -242,7 +242,7 @@ io.on('connection', socket => {
       testRenamer.on('exit', function () {
         socket.emit('TERMINAL_EXIT', 'RENAME_ENTRY_TYPE_FINISHED')
         getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
-        socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+        socket.emit('GET_STATUS_EXIT')
       })
     })
   })
@@ -274,7 +274,7 @@ io.on('connection', socket => {
       testRenamer.on('exit', function () {
         socket.emit('TERMINAL_EXIT', 'DUPLICATE_ENTRY_TYPE_FINISHED')
         getFoldersAndFiles(`${devAppsDir}/${payload.name}/dna/`, socket)
-        socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+        socket.emit('GET_STATUS_EXIT')
       })
     })
   })
@@ -292,14 +292,14 @@ io.on('connection', socket => {
     dnaCloner.on('exit', function () {
       socket.emit('TERMINAL_EXIT', 'CLONE_WEB_PART_FINISHED')
       getFoldersAndFiles(`${devAppsDir}/${payload.name}/src/`, socket)
-      socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+      socket.emit('GET_STATUS_EXIT')
     })
   })
 
-  socket.on('RECURSE_APPLICATION_FILES', (payload, callback) => {
-    console.log('RECURSE_APPLICATION_FILES', payload.name)
+  socket.on('GET_STATUS', (payload, callback) => {
+    console.log('GET_STATUS', payload.name)
     getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
-    socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+    socket.emit('GET_STATUS_EXIT')
   })
 
   socket.on('CREATE_APPLICATION', (payload) => {
@@ -319,7 +319,7 @@ io.on('connection', socket => {
       console.log('Child exited with code: ' + exitCode)
       socket.emit('TERMINAL_EXIT', 'CREATE_APPLICATION_FINISHED')
       getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
-      socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+      socket.emit('GET_STATUS_EXIT')
     })
   })
 
@@ -351,7 +351,7 @@ io.on('connection', socket => {
         console.log('Child exited with code: ' + exitCode)
         socket.emit('TERMINAL_EXIT', 'ADD_MODULE_FINISHED')
         getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
-        socket.emit('RECURSE_APPLICATION_FILES_EXIT')
+        socket.emit('GET_STATUS_EXIT')
       })
     })    
   })

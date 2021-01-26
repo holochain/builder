@@ -147,20 +147,22 @@ export default {
         commit('stdOutMessage', data)
       })
 
-      state.socket.on('RECURSE_APPLICATION_FILES', file => {
-        // console.log('RECURSE_APPLICATION_FILES', file)
+      state.socket.on('GET_STATUS', file => {
+        // console.log('GET_STATUS', file)
         state.db.currentFiles.put(file)
       })
-      state.socket.on('RECURSE_APPLICATION_FILES_ERROR', data => {
-        console.log('RECURSE_APPLICATION_FILES_ERROR', data)
+      state.socket.on('GET_STATUS_ERROR', data => {
+        console.log('GET_STATUS_ERROR', data)
       })
-      state.socket.on('RECURSE_APPLICATION_FILES_EXIT', () => {
-        // console.log('RECURSE_APPLICATION_FILES_EXIT')
+      state.socket.on('GET_STATUS_EXIT', () => {
+        // console.log('GET_STATUS_EXIT')
         state.db.currentFiles.toArray(currentFiles => {
           commit('currentFiles', currentFiles)
+          commit('incrementTreeRefreshKey')
+          dispatch('getDnaPaths')
+          dispatch('getCurrentChanges')
+          dispatch('getMergeTargetChanges')
         })
-        commit('incrementTreeRefreshKey')
-        dispatch('getDnaPaths')
       })
 
       state.socket.on('LINT_FILES_EXIT', data => {
@@ -315,7 +317,7 @@ export default {
       const name = payload.name
       state.socket.emit('REINSTALL_NODE_MODULES', { name })
     },
-    async recurseApplicationFiles ({ state }, payload) {
+    getStatus ({ state }, payload) {
       const name = payload.name
       state.db.currentFiles.clear().then(result => {
         state.db.currentFiles.put({
@@ -323,7 +325,7 @@ export default {
           name,
           type: 'dir'
         })
-        state.socket.emit('RECURSE_APPLICATION_FILES', { name })
+        state.socket.emit('GET_STATUS', { name })
       })
     },
     getCurrentChanges ({ state, commit }) {
@@ -363,7 +365,7 @@ export default {
         deletedFiles
       })
     },
-    commitChanges ({ state, commit }, payload) {
+    commitChanges ({ state, commit, dispatch }, payload) {
       const changes = state.currentChanges
       const message = payload.commitMessage
       const author = payload.author
@@ -394,6 +396,7 @@ export default {
         updatedFiles: [],
         deletedFiles: []
       })
+      dispatch('getMergeTargetChanges')
     },
     createBranch ({ state, commit }, payload) {
       const author = payload.author
@@ -1022,7 +1025,6 @@ export default {
     },
     openFileSaved (state, payload) {
       payload.edited = false
-      console.log(payload)
       state.openFiles = state.openFiles.map(f =>
         `${f.parentDir}${f.name}` !== `${payload.parentDir}${payload.name}` ? f : { ...f, ...payload }
       )
