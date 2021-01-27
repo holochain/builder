@@ -7,7 +7,7 @@
     "socket": "nodemon socket.js"
   },
   "dependencies": {
-    "@holochain/conductor-api": "^0.0.1-dev.10",
+    "@holochain/conductor-api": "^0.0.1-dev.16",
     "nodemon": "^2.0.6",
     "socket.io": "^2.3.0"
   }

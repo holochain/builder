@@ -9,7 +9,7 @@ passphrase_service: ~
 admin_interfaces:
     - driver:
         type: websocket
-        port: 26970
+        port: 26971
 network:
     transport_pool:
       - type: quic

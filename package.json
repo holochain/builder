@@ -6,14 +6,14 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "builder": "vue-cli-service serve --port 5200",
-    "vue": "./node_modules/@vue/cli/bin/vue.js",
     "start": "nf start",
     "postinstall": "cd socket && yarn install"
   },
   "main": "background.js",
   "dependencies": {
+    "@vue/cli": "^4.5.11",
     "@gitgraph/js": "^1.3.5",
-    "@holochain/conductor-api": "^0.0.1-dev.10",
+    "@holochain/conductor-api": "^0.0.1-dev.16",
     "byte-base64": "^1.1.0",
     "core-js": "^3.6.5",
     "dexie": "^3.0.2",
