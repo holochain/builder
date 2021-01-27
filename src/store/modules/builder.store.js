@@ -8,7 +8,7 @@ import { AdminWebsocket } from '@holochain/conductor-api'
 import DiffMatchPatch from 'diff-match-patch'
 
 const SOCKET_URL = 'ws://localhost:45678'
-const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26971'
+const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26972'
 
 Vue.use(Vuex)
 
