@@ -1,54 +1,51 @@
-FROM rust:1.45.2 as build
+# keep this in sync with Dockerfile.debian
+FROM ubuntu:xenial
 
-RUN mkdir /holochain
+# @see
+# https://github.com/TerrorJack/pixie/blob/master/.circleci/debian.Dockerfile
+# https://github.com/NixOS/nix/issues/971#issuecomment-489398535
 
-WORKDIR /holochain
-ARG REVISION=develop
-
-RUN git clone https://github.com/holochain/holochain.git
-
-RUN cargo install --path holochain/crates/holochain
-RUN cargo install --path holochain/crates/dna_util
-
-RUN mkdir /lair
-WORKDIR /lair
-RUN git clone https://github.com/holochain/lair.git
-RUN cargo install --path lair/crates/lair_keystore
-
-FROM rust:1.45.2
-COPY --from=build /usr/local/cargo/bin/holochain /usr/local/cargo/bin/holochain
-COPY --from=build /usr/local/cargo/bin/dna-util /usr/local/cargo/bin/dna-util
-COPY --from=build /usr/local/cargo/bin/lair-keystore /usr/local/cargo/bin/lair-keystore
-ENV PATH="/usr/local/cargo/bin:${PATH}"
-RUN rustup target add wasm32-unknown-unknown
-
-RUN apt-get update && apt-get install curl -y
-RUN curl -sL https://deb.nodesource.com/setup_12.x | bash
-RUN apt-get install -y nodejs
-RUN apt-get install libnss3-dev libgtk-3-0 libgbm1 libasound2 libxrandr2 libdrm2 libcups2 libatk-adaptor libx11-xcb1 libxcb-dri3-0 libxcomposite1 libxdamage1 -y
-RUN apt remove cmdtest
-RUN apt remove yarn
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+# linux docker does not ship with much
 RUN apt-get update
-RUN apt-get install -y yarn
-RUN apt-get install -y socat
+RUN apt-get install -y sudo xz-utils curl socat
 
-RUN mkdir /builder
-RUN mkdir /dev-apps
+# nix does not work under root
+# add a docker user that can sudo
+RUN adduser --disabled-password --gecos '' docker
+RUN adduser docker sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-WORKDIR /builder
-ARG BUILDERREV=master
+# nix expects the nixbld group
+RUN addgroup --system nixbld
+RUN adduser docker nixbld
 
-RUN git clone https://github.com/holochain/builder.git .
+# keep this matching nix-shell!
+ENV NIX_PATH nixpkgs=channel:nixos-19.09
 
-VOLUME /builder/socket/devConductor/files
+# sandbox doesn't play nice with ubuntu (at least in docker)
+RUN mkdir -p /etc/nix && echo 'sandbox = false' > /etc/nix/nix.conf
 
-RUN ls
-RUN yarn install
-RUN cd socket & yarn install
-VOLUME /builder/socket/node_modules
-VOLUME /builder/node_modules
-CMD socat tcp-l:44444,fork,reuseaddr tcp:127.0.0.1:44443 & yarn start
+# use the docker user
+USER docker
+ENV USER docker
+WORKDIR /home/docker
 
-# docker run -it --init -v /Users/philipbeadle/holochain/dev-apps:/dev-apps -v /Users/philipbeadle/holochain/builder:/builder -p 5200:5200 -p 44444:44444 -p 45678:45678
+# https://nixos.wiki/wiki/Nix_Installation_Guide#Single-user_install
+RUN sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
+RUN curl -L https://nixos.org/nix/install | sh
+
+# warm nix and avoid warnings about missing channels
+# https://github.com/NixOS/nixpkgs/issues/40165
+# RUN . /home/docker/.nix-profile/etc/profile.d/nix.sh; nix-channel --update; nix-shell https://nightly.holochain.love --run echo;
+
+RUN mkdir /home/docker/builder
+VOLUME /home/docker/builder
+RUN mkdir /home/docker/dev-apps
+VOLUME /home/docker/dev-apps
+WORKDIR /home/docker/builder
+RUN curl -sL https://github.com/holochain/builder/archive/master.tar.gz > master.tar.gz && tar zxvf master.tar.gz -C . && cp -R builder-master/* . && rm -rf builder-master && rm master.tar.gz && ls
+RUN . /home/docker/.nix-profile/etc/profile.d/nix.sh; nix-shell https://nightly.holochain.love --run "yarn install && cd socket && yarn install";
+CMD . /home/docker/.nix-profile/etc/profile.d/nix.sh; nix-shell https://nightly.holochain.love --run "yarn start"
+
+# 
+# docker run -it --init -v /Users/philipbeadle/holochain/dev-apps-docker:/home/docker/dev-apps -v /Users/philipbeadle/holochain/builder-docker:/home/docker/builder -p 5200:5200 -p 44444:44444 -p 45678:45678 -p 26970:26972 holochain:builder

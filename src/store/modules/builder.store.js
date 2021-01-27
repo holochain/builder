@@ -190,7 +190,7 @@ export default {
         if (data.includes('Conductor ready')) {
           AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_URL, 10000).then(admin => {
             state.hcAdmin = admin
-            state.hcAdmin.attachAppInterface({ port: 44443 }).then(appInterface => {
+            state.hcAdmin.attachAppInterface({ port: 44444 }).then(appInterface => {
               state.hcClient.appInterface = appInterface
             })
           })

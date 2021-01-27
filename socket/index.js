@@ -394,7 +394,7 @@ io.on('connection', socket => {
 
   socket.on('START_CONDUCTOR', (payload, callback) => {
     console.log('CONDUCTOR')
-    const conductorCmd = `RUST_LOG='[debug]=debug,[]=error' holochain -c ./devConductor/developer.yaml"`
+    const conductorCmd = `RUST_LOG='[debug]=debug,[]=error' holochain -c ./devConductor/developer.yaml`
     console.log('CONDUCTOR', conductorCmd)
     conductor = spawn(conductorCmd, { shell: true })
     conductor.stderr.on('data', function (err) {
@@ -412,8 +412,7 @@ io.on('connection', socket => {
   })
   socket.on('STOP_CONDUCTOR', () => {
     console.log(conductor !== undefined)
-    if (conductor !== undefined) conductor.kill()
-    socket.emit('CONDUCTOR_EXIT', 'CONDUCTOR_STOPPED')
+    if (conductor !== undefined) process.kill(conductor.pid)
   })
   socket.on('RESET_CONDUCTOR', () => {
     console.log(conductor !== undefined)
@@ -436,7 +435,7 @@ io.on('connection', socket => {
   })
 
   socket.on('TEST_DNA', (payload, callback) => {
-    const testDnaCmd = `cd ${devAppsDir}${payload.path}/tests && yarn install && nix-shell https://nightly.holochain.love --run "which holochain && yarn test"`
+    const testDnaCmd = `cd ${devAppsDir}${payload.path}/tests && yarn install && yarn test`
     console.log('TEST_DNA', testDnaCmd)
     const dnaTester = spawn(testDnaCmd, { shell: true })
     dnaTester.stderr.on('data', function (err) {
