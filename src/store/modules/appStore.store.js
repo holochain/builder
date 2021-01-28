@@ -74,8 +74,7 @@ export default {
           require('@/assets/img/shop/recursive2.png'),
           require('@/assets/img/shop/recursive3.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
-        plugin: 'vue-cli-plugin-holochain-recursive-cards'
+        developer: 'Eat Sleep Code Repeat'
       },
       {
         category: 97,
@@ -91,8 +90,7 @@ export default {
           require('@/assets/img/shop/profile-site3.png'),
           require('@/assets/img/shop/profile-site4.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
-        preset: 'vue-cli-preset-holochain-app-professional-profile'
+        developer: 'Eat Sleep Code Repeat'
       },
       {
         category: 97,
@@ -107,8 +105,7 @@ export default {
           require('@/assets/img/shop/performer-profile2.png'),
           require('@/assets/img/shop/performer-profile3.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
-        plugin: 'vue-cli-plugin-holochain-app-performer-profile'
+        developer: 'Eat Sleep Code Repeat'
       },
       {
         category: 5,
@@ -125,8 +122,7 @@ export default {
           require('@/assets/img/shop/elemental-chat2.png'),
           require('@/assets/img/shop/elemental-chat3.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
-        plugin: 'vue-cli-plugin-holochain-module-elemental-chat'
+        developer: 'Eat Sleep Code Repeat'
       },
       {
         category: 5,
@@ -153,8 +149,7 @@ export default {
           require('@/assets/img/shop/builder3.png'),
           require('@/assets/img/shop/builder5.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
-        plugin: 'vue-cli-plugin-holochain-module-builder'
+        developer: 'Eat Sleep Code Repeat'
       },
       {
         category: 4,

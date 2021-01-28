@@ -176,13 +176,12 @@
           >
           <v-list-item-title>Show</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="appServerStopped"
+          <v-list-item v-if="!appServerStarted"
             key="startWebServer"
             @click="
               stdMessagesDialog = true;
               terminalTab = 1;
               startWebServer({ name: applicationName });
-              appServerStopped = false
             "
           >
           <v-list-item-title>Start Web Server</v-list-item-title>
@@ -193,7 +192,6 @@
               stdMessagesDialog = true;
               terminalTab = 1;
               stopWebServer();
-              appServerStopped = true
             "
           >
             <v-list-item-title>Stop Web Server</v-list-item-title>
@@ -239,7 +237,12 @@
         <v-list dense>
            <v-list-item
             key="refreshFiles"
-            @click="getStatus({ name: applicationName });fileStatusDrawerOpen = true">
+            @click="
+              stdMessagesDialog = true;
+              terminalTab = 0;
+              getStatus({ name: applicationName });
+              fileStatusDrawerOpen = true
+            ">
             <v-list-item-title>Get Status</v-list-item-title>
           </v-list-item>
         </v-list>

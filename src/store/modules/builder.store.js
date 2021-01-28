@@ -8,7 +8,7 @@ import { AdminWebsocket } from '@holochain/conductor-api'
 import DiffMatchPatch from 'diff-match-patch'
 
 const SOCKET_URL = 'ws://localhost:45678'
-const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26972'
+const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26971'
 
 Vue.use(Vuex)
 
@@ -24,6 +24,7 @@ export default {
     treeRefreshKey: 0,
     stdOutMessages: [],
     appServerMessages: [],
+    appServerStarted: false,
     conductorMessages: [],
     testDnaMessages: [],
     finished: false,
@@ -148,7 +149,7 @@ export default {
       })
 
       state.socket.on('GET_STATUS', file => {
-        // console.log('GET_STATUS', file)
+        commit('stdOutMessage', `${file.parentDir}${file.name}`)
         state.db.currentFiles.put(file)
       })
       state.socket.on('GET_STATUS_ERROR', data => {
@@ -159,6 +160,7 @@ export default {
         state.db.currentFiles.toArray(currentFiles => {
           commit('currentFiles', currentFiles)
           commit('incrementTreeRefreshKey')
+          commit('stdOutMessage', 'GET_STATUS calculating changes')
           dispatch('getDnaPaths')
           dispatch('getCurrentChanges')
           dispatch('getMergeTargetChanges')
@@ -190,7 +192,7 @@ export default {
         if (data.includes('Conductor ready')) {
           AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_URL, 10000).then(admin => {
             state.hcAdmin = admin
-            state.hcAdmin.attachAppInterface({ port: 44444 }).then(appInterface => {
+            state.hcAdmin.attachAppInterface({ port: 0 }).then(appInterface => {
               state.hcClient.appInterface = appInterface
             })
           })
@@ -202,7 +204,11 @@ export default {
       })
       state.socket.on('CONDUCTOR_EXIT', data => {
         console.log('CONDUCTOR_EXIT', data)
-        commit('conductorMessage', data)
+        commit('conductorMessage', 'CONDUCTOR_EXIT')
+      })
+      state.socket.on('CONDUCTOR_CLOSE', data => {
+        console.log('CONDUCTOR_CLOSE', data)
+        commit('conductorMessage', 'CONDUCTOR_CLOSE')
       })
 
       state.socket.on('TEST_DNA_STDOUT', data => {
@@ -364,6 +370,7 @@ export default {
         updatedFiles,
         deletedFiles
       })
+      commit('stdOutMessage', 'GET_STATUS finished calculating changes')
     },
     commitChanges ({ state, commit, dispatch }, payload) {
       const changes = state.currentChanges
@@ -559,6 +566,7 @@ export default {
         mergedUpdatedFiles,
         mergedDeletedFiles
       })
+      commit('stdOutMessage', 'GET_STATUS finished calculating merge')
     },
     mergeBranch ({ state, commit, dispatch }, payload) {
       const message = payload.mergeMessage
@@ -627,6 +635,7 @@ export default {
     async startWebServer ({ state, commit }, payload) {
       const name = payload.name
       commit('clearAppServerMessages')
+      commit('appServerMessage', 'START_WEB_SERVER')
       state.socket.emit('START_WEB_SERVER', { name }, success => {
         console.log(success)
       })
@@ -964,6 +973,8 @@ export default {
     },
     appServerMessage (state, payload) {
       state.appServerMessages.push(payload)
+      if (payload === 'START_WEB_SERVER') state.appServerStarted = true
+      if (payload === 'SERVE_WEB_APP_EXIT') state.appServerStarted = false
     },
     clearConductorMessages (state) {
       state.conductorMessages = []

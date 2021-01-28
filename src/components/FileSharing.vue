@@ -45,7 +45,7 @@
           dark
         >
           <v-card
-            :id="`gitgraphcard${treeRefreshKey}`"
+            id="gitgraphcard"
             class="graph-container mb-2"
             :key="treeRefreshKey"
             dark
@@ -479,9 +479,8 @@ export default {
     },
     showBranchGraph () {
       process.nextTick(() => {
-        const graphContainer = document.getElementById(`gitgraphcard${this.treeRefreshKey}`)
+        const graphContainer = document.getElementById('gitgraphcard')
         const gitgraph = createGitgraph(graphContainer)
-        console.log('🚀 ~ file: FileSharing.vue ~ line 484 ~ process.nextTick ~ gitgraph', gitgraph)
         let graphBranch
         if (this.commits.length === 0) {
           graphBranch = gitgraph

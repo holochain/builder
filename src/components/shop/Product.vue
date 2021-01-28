@@ -22,7 +22,7 @@
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn class="primary white--text" tile @click="$emit('install')">
+            <v-btn v-if="product.preset || product.plugin" class="primary white--text" tile @click="$emit('install')">
               <v-icon>mdi-application-import</v-icon>
               <span v-if="newApplication">Create New Project</span>
               <span v-else>Add New Module</span>

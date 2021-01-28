@@ -70,7 +70,6 @@ function getFoldersAndFiles (parentDir, socket) {
 }
 
 io.on('connection', socket => {
-  console.log('Connected', socket.id)
   socket.on('CREATE_AGENT', (payload, callback) => {
     console.log('CREATE_AGENT', payload)
     hcClient.admin.generateAgentPubKey().then(agentKey => {
@@ -393,30 +392,35 @@ io.on('connection', socket => {
   })
 
   socket.on('START_CONDUCTOR', (payload, callback) => {
-    console.log('CONDUCTOR')
-    const conductorCmd = `RUST_LOG='[debug]=debug,[]=error' holochain -c ./devConductor/developer.yaml`
-    console.log('CONDUCTOR', conductorCmd)
-    conductor = spawn(conductorCmd, { shell: true })
+    conductor = spawn('holochain', ['-c', './devConductor/developer.yaml'])
     conductor.stderr.on('data', function (err) {
-      console.error('STDERR:', err.toString())
+      console.error('CONDUCTOR_ERROR:', err.toString())
       socket.emit('CONDUCTOR_ERROR', err.toString())
     })
     conductor.stdout.on('data', function (data) {
-      console.log('STDOUT:', data.toString())
+      console.log('CONDUCTOR_STDOUT:', data.toString())
       socket.emit('CONDUCTOR_STDOUT', data.toString())
     })
     conductor.on('exit', function (exitCode) {
       console.log('CONDUCTOR_EXIT with code: ' + exitCode)
       socket.emit('CONDUCTOR_EXIT', exitCode)
     })
+    conductor.on('close', function (exitCode) {
+      console.log('CONDUCTOR_CLOSE with code: ' + exitCode)
+      socket.emit('CONDUCTOR_CLOSE', exitCode)
+    })
   })
   socket.on('STOP_CONDUCTOR', () => {
-    console.log(conductor !== undefined)
-    if (conductor !== undefined) process.kill(conductor.pid)
+    if (conductor !== undefined) {
+      conductor.stdin.end()
+      conductor.kill('SIGHUP')
+    }
   })
   socket.on('RESET_CONDUCTOR', () => {
-    console.log(conductor !== undefined)
-    if (conductor !== undefined) conductor.kill()
+    if (conductor !== undefined) {
+      conductor.stdin.end()
+      conductor.kill('SIGHUP')
+    }
     const reset = `cd devConductor && rm -rf files && mkdir files`
     console.log('RESET_CONDUCTOR', reset)
     const resetConductor = spawn(reset, { shell: true })
