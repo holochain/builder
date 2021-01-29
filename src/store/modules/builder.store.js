@@ -8,7 +8,9 @@ import { AdminWebsocket } from '@holochain/conductor-api'
 import DiffMatchPatch from 'diff-match-patch'
 
 const SOCKET_URL = 'ws://localhost:45678'
-const HOLOCHAIN_ADMIN_SOCKET_URL = 'ws://localhost:26971'
+const HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL = 'ws://localhost:26971'
+const HOLOCHAIN_APP_INTERFACE_PORT = 11381
+const HOLOCHAIN_APP_INTERFACE_DOCKER_PORT = 11380
 
 Vue.use(Vuex)
 
@@ -24,8 +26,9 @@ export default {
     treeRefreshKey: 0,
     stdOutMessages: [],
     appServerMessages: [],
-    appServerStarted: false,
+    appServerRunning: false,
     conductorMessages: [],
+    conductorRunning: false,
     testDnaMessages: [],
     finished: false,
     treeItems: [],
@@ -186,24 +189,40 @@ export default {
         commit('appServerMessage', 'SERVE_WEB_APP_EXIT')
       })
 
+      state.socket.emit('IS_CONDUCTOR_RUNNING')
+      state.socket.on('CONDUCTOR_RUNNING', data => {
+        if (data) {
+          commit('conductorRunning', true)
+          AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL, 10000).then(admin => {
+            state.hcAdmin = admin
+            state.hcClient.port = HOLOCHAIN_APP_INTERFACE_DOCKER_PORT
+          })
+          commit('conductorMessage', 'Reconnected')
+        } else {
+          commit('conductorRunning', false)
+        }
+      })
       state.socket.on('CONDUCTOR_STDOUT', data => {
         console.log('CONDUCTOR_STDOUT', data)
-        commit('conductorMessage', data)
         if (data.includes('Conductor ready')) {
-          AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_URL, 10000).then(admin => {
+          commit('conductorRunning', true)
+          AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL, 10000).then(admin => {
             state.hcAdmin = admin
-            state.hcAdmin.attachAppInterface({ port: 0 }).then(appInterface => {
-              state.hcClient.appInterface = appInterface
+            state.hcAdmin.attachAppInterface({ port: HOLOCHAIN_APP_INTERFACE_PORT }).then(() => {
+              state.hcClient.port = HOLOCHAIN_APP_INTERFACE_DOCKER_PORT
             })
           })
         }
+        commit('conductorMessage', data)
       })
       state.socket.on('CONDUCTOR_ERROR', data => {
         console.log('CONDUCTOR_ERROR', data)
         commit('conductorMessage', data)
+        commit('conductorRunning', false)
       })
       state.socket.on('CONDUCTOR_EXIT', data => {
         console.log('CONDUCTOR_EXIT', data)
+        commit('conductorRunning', false)
         commit('conductorMessage', 'CONDUCTOR_EXIT')
       })
       state.socket.on('CONDUCTOR_CLOSE', data => {
@@ -647,20 +666,18 @@ export default {
       commit('clearConductorMessages')
       state.socket.emit('START_CONDUCTOR')
     },
-    async stopConductor ({ state }) {
-      state.socket.emit('STOP_CONDUCTOR')
-    },
     async resetConductor ({ state, commit }) {
       state.socket.emit('RESET_CONDUCTOR')
       state.db.agents
         .where('parent')
-        .equals(state.uuid)
+        .equals(state.conductor.uuid)
         .toArray(agents => {
           agents.forEach(agent => {
             delete agent.agentPubKey
             delete agent.cellData
             state.db.agents.put(agent)
           })
+          commit('setAgents', agents)
         })
     },
     async getTemplates ({ commit, state }) {
@@ -973,14 +990,17 @@ export default {
     },
     appServerMessage (state, payload) {
       state.appServerMessages.push(payload)
-      if (payload === 'START_WEB_SERVER') state.appServerStarted = true
-      if (payload === 'SERVE_WEB_APP_EXIT') state.appServerStarted = false
+      if (payload === 'START_WEB_SERVER') state.appServerRunning = true
+      if (payload === 'SERVE_WEB_APP_EXIT') state.appServerRunning = false
     },
     clearConductorMessages (state) {
       state.conductorMessages = []
     },
     conductorMessage (state, payload) {
       state.conductorMessages.push(payload)
+    },
+    conductorRunning (state, payload) {
+      state.conductorRunning = payload
     },
     clearTestDnaMessages (state) {
       state.testDnaMessages = []

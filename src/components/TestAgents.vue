@@ -110,6 +110,15 @@
         </v-row>
       </v-card>
     </v-navigation-drawer>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn color="action darken-1" text @click="$emit('close')">
+        Close
+      </v-btn>
+      <v-btn color="action darken-1" text @click="agentDetailsOpen = true">
+        Add Agent
+      </v-btn>
+    </v-card-actions>
   </v-card>
 </template>
 <script>

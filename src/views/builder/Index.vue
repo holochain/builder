@@ -17,21 +17,24 @@
             v-bind="attrs"
             v-on="on"
           >
-            Application
+            Project
           </v-btn>
         </template>
         <v-list dense>
           <v-list-item
+            v-if="applicationName === ''"
             @click="openShop(true)"
-            key="newApplication"
+            key="newProject"
           >
-            <v-list-item-title>New Holochain App</v-list-item-title>
+            <v-list-item-title>New From Preset</v-list-item-title>
           </v-list-item>
+          <v-divider></v-divider>
           <v-list-item
+            v-if="applicationName !== ''"
             key="addModule"
             @click="openShop(false)"
           >
-          <v-list-item-title>Add Module</v-list-item-title>
+            <v-list-item-title>Add Module</v-list-item-title>
           </v-list-item>
           <v-list-item
             key="addLayout"
@@ -55,6 +58,13 @@
           <v-list-item key="addComponent">
             <v-list-item-title class="grey--text">Add Component</v-list-item-title>
           </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Package for Holo</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Package for Holochain</v-list-item-title>
+          </v-list-item>
         </v-list>
       </v-menu>
       <v-menu offset-y dark>
@@ -72,16 +82,6 @@
           </v-btn>
         </template>
         <v-list dense>
-          <v-list-item v-for="path in dnaPaths" :key="path.uuid"
-            @click="
-              stdMessagesDialog = true;
-              terminalTab = 2;
-              testDna({ name: applicationName, path: `${path.parentDir}${path.name}` });
-            "
-          >
-            <v-list-item-title>Test '{{path.name}}'' DNA</v-list-item-title>
-          </v-list-item>
-          <v-divider></v-divider>
           <v-list-item
             key="newDna"
             @click="
@@ -116,42 +116,21 @@
             v-bind="attrs"
             v-on="on"
           >
-            Dev Conductor
+            Test & Demo
           </v-btn>
         </template>
         <v-list dense>
-          <v-list-item v-if="conductorStopped"
-            key="startConductor"
+          <v-list-item v-for="path in dnaPaths" :key="path.uuid"
             @click="
               stdMessagesDialog = true;
-              terminalTab = 3;
-              startConductor();
-              conductorStopped = false
+              terminalTab = 2;
+              testDna({ name: applicationName, path: `${path.parentDir}${path.name}` });
             "
           >
-            <v-list-item-title>Start</v-list-item-title>
+            <v-list-item-title>Test '{{path.name}}'' DNA</v-list-item-title>
           </v-list-item>
-          <v-list-item v-else
-            key="stopConductor"
-            @click="
-              stdMessagesDialog = true;
-              terminalTab = 3;
-              stopConductor();
-              conductorStopped = true
-            "
-          >
-            <v-list-item-title>Stop</v-list-item-title>
-          </v-list-item>
-          <v-list-item key="resetConductorFiles"
-            @click="stdMessagesDialog = true;
-              terminalTab = 3;
-              resetConductor();
-              conductorStopped = true"
-            >
-            <v-list-item-title>Reset</v-list-item-title>
-          </v-list-item>
-          <v-list-item key="manageDemoAgents"  v-if="!conductorStopped" @click="testAgentsDialog = true;fetchAgents(conductor)">
-            <v-list-item-title>Agents</v-list-item-title>
+          <v-list-item key="manageDemoAgents"  v-if="conductorRunning" @click="testAgentsDialog = true;fetchAgents(conductor)">
+            <v-list-item-title>Demo Agents</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -176,7 +155,7 @@
           >
           <v-list-item-title>Show</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="!appServerStarted"
+          <v-list-item v-if="!appServerRunning"
             key="startWebServer"
             @click="
               stdMessagesDialog = true;
@@ -196,6 +175,20 @@
           >
             <v-list-item-title>Stop Web Server</v-list-item-title>
           </v-list-item>
+          <v-list-item v-if="!conductorRunning"
+            key="startConductor"
+            @click="
+              stdMessagesDialog = true;
+              terminalTab = 3;
+              startConductor();
+            "
+          >
+            <v-list-item-title>Start Conductor</v-list-item-title>
+          </v-list-item>
+          <v-list-item key="resetConductorFiles" @click="resetConductor">
+            <v-list-item-title>Reset Conductor</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
           <v-list-item
             key="yarn lint"
             @click="
@@ -243,7 +236,20 @@
               getStatus({ name: applicationName });
               fileStatusDrawerOpen = true
             ">
-            <v-list-item-title>Get Status</v-list-item-title>
+            <v-list-item-title>Review Your Changes</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Get Shared Changes</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Share Your Changes</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Publish Preset</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Publish Plugin</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -312,10 +318,10 @@
                   </v-tab-item>
                   <v-tab>
                     App Server
-                    <v-icon v-if="appServerStopped" right small @click="startWebServer({ name: applicationName });appServerStopped = false">
+                    <v-icon v-if="!appServerRunning" right small @click="startWebServer({ name: applicationName })">
                       mdi-play-circle-outline
                     </v-icon>
-                    <v-icon v-else right small @click="stopWebServer()();appServerStopped = true">
+                    <v-icon v-else right small @click="stopWebServer()">
                       mdi-stop-circle-outline
                     </v-icon>
                   </v-tab>
@@ -337,11 +343,11 @@
                   </v-tab-item>
                   <v-tab>
                     Dev Conductor
-                    <v-icon v-if="conductorStopped" right small @click="startConductor();conductorStopped = false">
-                      mdi-play-circle-outline
-                    </v-icon>
-                    <v-icon v-else right small @click="stopConductor();conductorStopped = true">
+                    <v-icon v-if="conductorRunning" right small @click="resetConductor()">
                       mdi-stop-circle-outline
+                    </v-icon>
+                    <v-icon v-else right small @click="startConductor()">
+                      mdi-play-circle-outline
                     </v-icon>
                   </v-tab>
                   <v-tab-item key="conductorTab">
@@ -529,8 +535,8 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="testAgentsDialog" max-width="800px">
-      <test-agents />
+    <v-dialog v-model="testAgentsDialog" persistent max-width="800px">
+      <test-agents @close="testAgentsDialog = false" />
     </v-dialog>
     <v-navigation-drawer
       v-model="myappDrawerOpen"
@@ -567,7 +573,7 @@
       right
       :width="this.$vuetify.breakpoint.lgAndUp ? 1100 : 900"
     >
-      <file-sharing @close="fileStatusDrawerOpen = false"/>
+      <file-sharing @close="fileStatusDrawerOpen = false" @change-branch="stdMessagesDialog = true" />
     </v-navigation-drawer>
   </v-card>
 </template>
@@ -598,8 +604,6 @@ export default {
       stdMessagesDialog: false,
       createApplicationDialog: false,
       webPartDialogTitle: '',
-      conductorStopped: true,
-      appServerStopped: true,
       addDnaDialog: false,
       addWebPartDialog: false,
       renameEntryDialog: false,
@@ -635,7 +639,9 @@ export default {
       'dnaEntryTypes',
       'stdOutMessages',
       'appServerMessages',
+      'appServerRunning',
       'conductorMessages',
+      'conductorRunning',
       'finished',
       'dnaTemplates',
       'webPartTemplates',
@@ -665,7 +671,6 @@ export default {
       'stopWebServer',
       'startConductor',
       'stopConductor',
-      'resetConductor',
       'fetchAgents',
       'getTemplates',
       'getWebPartTemplates',
@@ -719,6 +724,11 @@ export default {
     },
     newFile () {
       this.createFile({ parentDir: this.parentDir, name: 'something.js' })
+    },
+    resetConductor () {
+      this.stdMessagesDialog = true
+      this.terminalTab = 3
+      this.$store.dispatch('builder/resetConductor')
     },
     scrollToEnd () {
       var container = this.$el.querySelector('#container')

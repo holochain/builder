@@ -391,7 +391,10 @@ io.on('connection', socket => {
     socket.emit('SERVE_WEB_APP_EXIT', 'WEB_SERVER_STOPPED')
   })
 
-  socket.on('START_CONDUCTOR', (payload, callback) => {
+  socket.on('IS_CONDUCTOR_RUNNING', () => {
+    socket.emit('CONDUCTOR_RUNNING', conductor !== undefined)
+  })
+  socket.on('START_CONDUCTOR', () => {
     conductor = spawn('holochain', ['-c', './devConductor/developer.yaml'])
     conductor.stderr.on('data', function (err) {
       console.error('CONDUCTOR_ERROR:', err.toString())
@@ -403,23 +406,21 @@ io.on('connection', socket => {
     })
     conductor.on('exit', function (exitCode) {
       console.log('CONDUCTOR_EXIT with code: ' + exitCode)
+      socket.emit('CONDUCTOR_RUNNING', false)
       socket.emit('CONDUCTOR_EXIT', exitCode)
     })
     conductor.on('close', function (exitCode) {
       console.log('CONDUCTOR_CLOSE with code: ' + exitCode)
+      socket.emit('CONDUCTOR_RUNNING', false)
       socket.emit('CONDUCTOR_CLOSE', exitCode)
     })
   })
-  socket.on('STOP_CONDUCTOR', () => {
-    if (conductor !== undefined) {
-      conductor.stdin.end()
-      conductor.kill('SIGHUP')
-    }
-  })
+
   socket.on('RESET_CONDUCTOR', () => {
     if (conductor !== undefined) {
       conductor.stdin.end()
       conductor.kill('SIGHUP')
+      conductor = undefined
     }
     const reset = `cd devConductor && rm -rf files && mkdir files`
     console.log('RESET_CONDUCTOR', reset)

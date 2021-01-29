@@ -24,7 +24,7 @@
             <v-spacer></v-spacer>
             <v-btn v-if="product.preset || product.plugin" class="primary white--text" tile @click="$emit('install')">
               <v-icon>mdi-application-import</v-icon>
-              <span v-if="newApplication">Create New Project</span>
+              <span v-if="newApplication">Create New Application</span>
               <span v-else>Add New Module</span>
             </v-btn>
           </v-card-actions>
@@ -38,6 +38,9 @@
             <span class="body-2">App REVIEWS</span>
           </v-tab>
           <v-tab>Developer Info</v-tab>
+          <v-tab>
+            <span class="body-2">App Ancestry</span>
+          </v-tab>
           <v-tab-item>
             <v-list
               :three-line="true"
