@@ -22,11 +22,19 @@
         </template>
         <v-list dense>
           <v-list-item
-            v-if="applicationName === ''"
             @click="openShop(true)"
             key="newProject"
           >
             <v-list-item-title>New From Preset</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-for="application in applications"
+            @click="stdMessagesDialog = true;
+              resetConductor();
+              terminalTab = 0;
+              getStatus({ name: application.name });"
+            :key="application.uuid"
+          >
+            <v-list-item-title>Open {{ application.name }} Application</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item
@@ -265,7 +273,7 @@
             v-bind="attrs"
             v-on="on"
           >
-            {{ applicationName }} <span v-if="currentBranch">({{ currentBranch.branch }})</span>
+            {{ organisationApplicationName }} <span v-if="currentBranch">({{ currentBranch.branch }})</span>
           </v-btn>
         </template>
         <span>Show the project details</span>
@@ -343,10 +351,10 @@
                   </v-tab-item>
                   <v-tab>
                     Dev Conductor
-                    <v-icon v-if="conductorRunning" right small @click="resetConductor()">
+                    <v-icon v-if="conductorRunning" right small @click="resetConductor">
                       mdi-stop-circle-outline
                     </v-icon>
-                    <v-icon v-else right small @click="startConductor()">
+                    <v-icon v-else right small @click="startConductor">
                       mdi-play-circle-outline
                     </v-icon>
                   </v-tab>
@@ -598,7 +606,7 @@ export default {
       refreshKey: 0,
       shop: true,
       cwHeight: 700,
-      terminalTitle: 'Terminal',
+      organisationApplicationName: this.organisation,
       myappDrawerOpen: false,
       fileStatusDrawerOpen: false,
       stdMessagesDialog: false,
@@ -634,6 +642,7 @@ export default {
   computed: {
     ...mapState('builder', [
       'conductor',
+      'applications',
       'applicationName',
       'dnaPaths',
       'dnaEntryTypes',
@@ -651,6 +660,7 @@ export default {
       'sharedFiles'
     ]),
     ...mapState('appStore', ['applicationItems', 'moduleItems']),
+    ...mapState('builderOrganisations', ['organisation']),
     items () {
       if (this.newApplication) return this.applicationItems
       if (!this.newApplication) return this.moduleItems
@@ -738,15 +748,23 @@ export default {
   watch: {
     selectedEntryType (entryType) {
       this.selectedEntryTypeHint = `DNA - ${entryType.parentDir.split('/')[3]}`
+    },
+    applicationName (appName) {
+      if (this.organisation) {
+        this.organisationApplicationName = `${this.organisation.name} - ${appName}`
+      } else {
+        this.organisationApplicationName = `${appName}`
+      }
     }
   },
-  created () {
-    this.$store.dispatch('builder/initialise')
-    this.$store.dispatch('appStore/initialise')
-  },
   mounted () {
-    this.$store.dispatch('builder/getDnaPaths')
-    this.$store.dispatch('builder/getDnaEntryTypes')
+    this.$store.dispatch('appStore/initialise')
+    this.$store.dispatch('builderOrganisations/initialise').then(() => this.$store.dispatch('builder/getApplications'))
+    this.$store.dispatch('builder/initialise')
+      .then(() => {
+        this.$store.dispatch('builder/getDnaPaths')
+        this.$store.dispatch('builder/getDnaEntryTypes')
+      })
     this.setCodeWindowHeight()
   }
 }

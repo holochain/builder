@@ -5,9 +5,9 @@ const routes = [
     component: () => import('@/layouts/basic/Index.vue'),
     children: [
       {
-        path: 'developer/:uuid',
-        name: 'Builder',
-        component: () => import('@/views/builder/developer/Index.vue')
+        path: 'organisations',
+        name: 'Organisations',
+        component: () => import('@/views/builder/organisations/Index.vue')
       }
     ]
   }

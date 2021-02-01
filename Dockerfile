@@ -34,8 +34,8 @@ WORKDIR /home/docker
 RUN sudo install -d -m755 -o $(id -u) -g $(id -g) /nix
 RUN curl -L https://nixos.org/nix/install | sh
 
-RUN mkdir /home/docker/dev-apps
-VOLUME /home/docker/dev-apps
+RUN mkdir /home/docker/builder-organisations
+VOLUME /home/docker/builder-organisations
 WORKDIR /home/docker
 RUN curl -sL https://github.com/holochain/builder/archive/master.tar.gz > master.tar.gz && tar -zxvf master.tar.gz && mv builder-master builder
 VOLUME /home/docker/builder
@@ -44,4 +44,4 @@ RUN . /home/docker/.nix-profile/etc/profile.d/nix.sh; nix-shell https://nightly.
 CMD socat tcp-l:26971,fork,reuseaddr tcp:127.0.0.1:26970 & socat tcp-l:11380,fork,reuseaddr tcp:127.0.0.1:11381 & . /home/docker/.nix-profile/etc/profile.d/nix.sh; nix-shell https://nightly.holochain.love --run "yarn start"
 
 # docker run -it --init -p 5200:5200 -p 44444:44444 -p 45678:45678 -p 26970:26972 holochain:builder
-# docker run -it --init -v /Users/philipbeadle/holochain/dev-apps:/home/docker/dev-apps -v /Users/philipbeadle/holochain/builder:/home/docker/builder -p 5200:5200 -p 11380:11380 -p 45678:45678 -p 26971:26971 -p 44001:44001 -p 44002:44002 -p 44003:44003 -p 44004:44004 holochain:builder
+# docker run -it --init -v /Users/philipbeadle/holochain/builder-organisations:/home/docker/builder-organisations -v /Users/philipbeadle/holochain/builder:/home/docker/builder -p 26971:26971 -p 5200:5200 -p 44444:44444 -p 45678:45678 holochain:builder

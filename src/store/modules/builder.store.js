@@ -22,6 +22,7 @@ export default {
     hcClient: {},
     appInterface: {},
     applicationName: '',
+    applications: [],
     refreshKey: 0,
     treeRefreshKey: 0,
     stdOutMessages: [],
@@ -208,6 +209,7 @@ export default {
           commit('conductorRunning', true)
           AdminWebsocket.connect(HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL, 10000).then(admin => {
             state.hcAdmin = admin
+            console.log('🚀 ~ file: builder.store.js ~ line 212 ~ AdminWebsocket.connect ~ admin', admin)
             state.hcAdmin.attachAppInterface({ port: HOLOCHAIN_APP_INTERFACE_PORT }).then(() => {
               state.hcClient.port = HOLOCHAIN_APP_INTERFACE_DOCKER_PORT
             })
@@ -325,13 +327,15 @@ export default {
     async createApplication ({ state, commit }, payload) {
       const name = payload.name
       const preset = payload.preset
-      state.db.currentFiles.put({
-        parentDir: '/',
-        name,
-        type: 'dir'
+      state.db.currentFiles.clear().then(() => {
+        state.db.currentFiles.put({
+          parentDir: '/',
+          name,
+          type: 'dir'
+        })
+        commit('setApplicationName', name)
+        state.socket.emit('CREATE_APPLICATION', { name, preset })
       })
-      commit('setApplicationName', name)
-      state.socket.emit('CREATE_APPLICATION', { name, preset })
     },
     async addModule ({ state }, payload) {
       const name = payload.name
@@ -342,9 +346,15 @@ export default {
       const name = payload.name
       state.socket.emit('REINSTALL_NODE_MODULES', { name })
     },
+    getApplications ({ state, rootState, commit }) {
+      const name = rootState.builderOrganisations.name
+      state.socket.emit('GET_APPLICATIONS', { name }, (entries) => {
+        commit('setApplications', entries)
+      })
+    },
     getStatus ({ state }, payload) {
       const name = payload.name
-      state.db.currentFiles.clear().then(result => {
+      state.db.currentFiles.clear().then(() => {
         state.db.currentFiles.put({
           parentDir: '/',
           name,
@@ -859,12 +869,12 @@ export default {
         state.db.agents.put(agent)
       })
     },
-    installDna ({ state, commit }, payload) {
+    installDna ({ state, rootState, commit }, payload) {
       console.log(payload)
       const dnas = []
       payload.dnaPaths.forEach(dna => {
         dnas.push({
-          path: `../../dev-apps${dna.parentDir}${dna.name}/${dna.name}.dna.gz`,
+          path: `../../builder-organisations/${rootState.builderOrganisations.organisation.name}/applications/${dna.parentDir}${dna.name}/${dna.name}.dna.gz`,
           nick: dna.name
         })
       })
@@ -931,6 +941,9 @@ export default {
     }
   },
   mutations: {
+    setApplications (state, payload) {
+      state.applications = payload
+    },
     setApplicationName (state, payload) {
       state.applicationName = payload
     },

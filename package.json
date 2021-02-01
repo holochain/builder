@@ -23,7 +23,7 @@
     "vue-socket.io": "^3.0.10",
     "vue-split-panel": "^1.0.4",
     "vuetify": "^2.2.11",
-    "vuetify-image-input": "^19.1.0",
+    "vuetify-image-input": "^19.2.0",
     "vuex": "^3.4.0"
   },
   "devDependencies": {

@@ -1,12 +1,25 @@
 const server = require('http').createServer()
 const options = {}
-const devAppsDir = `${__dirname.replace('builder/socket', '')}dev-apps`
+const builderOrg = process.argv[2]
+const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
+const devPresetsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/presets`
+const devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
 const io = require('socket.io')(server, options)
 const fs = require('fs')
 const SERVER_PORT = 45678
 const { spawn } = require('child_process')
 let conductor = undefined
 let appServer = undefined
+
+if (!fs.existsSync(devAppsDir)) {
+  fs.mkdirSync(devAppsDir, { recursive: true })
+}
+if (!fs.existsSync(devPresetsDir)) {
+  fs.mkdirSync(devPresetsDir, { recursive: true })
+}
+if (!fs.existsSync(devPluginsDir)) {
+  fs.mkdirSync(devPluginsDir, { recursive: true })
+}
 
 function getFileType (fileName) {
   if (fileName.startsWith('.')) return fileName.replace('.', '')
@@ -299,6 +312,14 @@ io.on('connection', socket => {
     console.log('GET_STATUS', payload.name)
     getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
     socket.emit('GET_STATUS_EXIT')
+  })
+
+  socket.on('GET_APPLICATIONS', (payload, callback) => {
+    console.log('GET_APPLICATIONS', payload.name)
+    console.log(devAppsDir)
+    const entries = fs.readdirSync(`${devAppsDir}/`, { withFileTypes: true }).filter(entry => entry.isDirectory())
+    console.log('🚀 ~ file: index.js ~ line 321 ~ socket.on ~ entries', entries)
+    callback(entries)
   })
 
   socket.on('CREATE_APPLICATION', (payload) => {
