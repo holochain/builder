@@ -30,6 +30,9 @@ export default {
         currentOrganisation: 'uuid,name'
       })
       dispatch('fetchOrganisations')
+      state.db.currentOrganisation.toArray(org => {
+        state.organisation = org[0]
+      })
     },
     saveOrganisation ({ state, commit }, payload) {
       const organisation = payload
@@ -67,9 +70,6 @@ export default {
     fetchOrganisations ({ state, commit }) {
       state.db.organisations.toArray(all => {
         commit('setOrganisations', all)
-        state.db.currentOrganisation.toArray(org => {
-          state.organisation = org[0]
-        })
       })
     }
   },

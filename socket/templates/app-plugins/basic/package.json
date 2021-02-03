@@ -1,0 +1,21 @@
+{
+  "name": "vue-cli-plugin-holochain-app-shell",
+  "version": "0.0.1",
+  "description": "A shell app for building new Holochain Apps",
+  "author": "Philip Beadle <philip.beadle@holo.host>",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint --ext .js,.vue ."
+  },
+  "dependencies": {
+    "semver": "^7.1.2"
+  },
+  "peerDependenciesMeta": {
+    "sass-loader": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

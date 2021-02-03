@@ -24,8 +24,11 @@
             <v-spacer></v-spacer>
             <v-btn v-if="product.preset || product.plugin" class="primary white--text" tile @click="$emit('install')">
               <v-icon>mdi-application-import</v-icon>
-              <span v-if="newApplication">Create New Application</span>
-              <span v-else>Add New Module</span>
+              <span>{{ filter.action }}</span>
+            </v-btn>
+            <v-btn v-if="product.template" class="primary white--text" tile @click="$emit(`${filter.event}`, product)">
+              <v-icon>mdi-application-import</v-icon>
+              <span>{{ filter.action }}</span>
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -104,7 +107,7 @@
 </template>
 <script>
 export default {
-  props: ['product', 'newApplication'],
+  props: ['product', 'filter'],
   data: () => ({
     rating: 4.5,
     item: 5,

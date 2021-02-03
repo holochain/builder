@@ -45,6 +45,12 @@ export default {
         ]
       }
     ],
+    cliPluginAppItems: [
+      { id: 491, name: 'Basic' }
+    ],
+    cliPluginModuleItems: [
+      { id: 749, name: 'Basic' }
+    ],
     products: [
       {
         category: 49,
@@ -53,13 +59,60 @@ export default {
         type: 'application',
         preview: require('../../assets/img/shop/Simple1.png'),
         description: 'Simple is a complete Holochain application that you can use as a starting point for your own app. Simple let\'s you create, update, list and delete Things. Get it? The Simple Things in life :) This app shows you how to interact with Holochain from a modern web app built with Vue.js and Vuetify. Simple also takes advantage of the IndexDB, available in all browsers and has a lot of storage, to speed up the experience for people using your app. You can also use Simple as a shell app and install Holochain Modules to create your own app.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/Simple1.png'),
           require('@/assets/img/shop/Simple2.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
+        developer: 'Holochain',
         preset: 'holochain/vue-cli-preset-holochain-app-simple'
+      },
+      {
+        category: 49,
+        uuid: '03231872-7341-4c78-92b8-38e7bbc58ec0',
+        name: 'Shell',
+        type: 'application',
+        preview: require('../../assets/img/shop/basic-shell.png'),
+        description: 'Use this super basic shell as your starting point.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
+        screens: [
+          require('@/assets/img/shop/basic-shell.png')
+        ],
+        developer: 'Holochain',
+        preset: {
+          useConfigFiles: true,
+          plugins: {
+            '@vue/cli-plugin-babel': {},
+            '@vue/cli-plugin-pwa': {},
+            '@vue/cli-plugin-router': {
+              historyMode: true
+            },
+            '@vue/cli-plugin-vuex': {},
+            '@vue/cli-plugin-eslint': {
+              config: 'standard',
+              lintOn: [
+                'save',
+                'commit'
+              ]
+            },
+            '@vue/cli-plugin-unit-mocha': {},
+            '@vue/cli-plugin-e2e-cypress': {},
+            'vue-cli-plugin-vuetify': {
+              preset: 'configure',
+              replaceComponents: true,
+              iconFont: 'mdi',
+              installFonts: true,
+              locale: 'en',
+              useAlaCarte: false,
+              useCustomProperties: false,
+              usePolyfill: false,
+              useTheme: true
+            },
+            'vue-cli-plugin-holochain-app-shell': {}
+          },
+          vueVersion: 2,
+          cssPreprocessor: 'dart-sass'
+        }
       },
       {
         category: 101,
@@ -68,13 +121,13 @@ export default {
         type: 'application',
         preview: require('../../assets/img/shop/recursive4.png'),
         description: 'This Vuetify web app, Columns & Cards, is setup to show you how easy it is to build a Holochain application. Columns & Cards is a starting point for, as you guessed, recursivecards apps that don\'t require a complicated navigation system or other fancy layouts. Columns & Cards shows you how to use Vue Router, Vuex and Holochain. It also shows you how to secure your routes and check to make sure the person using Columns & Cards has a Holochain Public Agent Key or has logged in to Holo. Columns & Cards also uses dexie.js to store information in the browser database, IndexDB. This speeds up your even more enabling you to retrieve data immediately from IndexDB and then let the data be updated by Holochain. This is known as the stale-while-revalidate (SWR) pattern. If your app needs more complicated layouts try the Holochain Kitchen Sink option.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/recursive1.png'),
           require('@/assets/img/shop/recursive2.png'),
           require('@/assets/img/shop/recursive3.png')
         ],
-        developer: 'Eat Sleep Code Repeat'
+        developer: 'Holochain'
       },
       {
         category: 97,
@@ -83,14 +136,14 @@ export default {
         type: 'application',
         preview: require('../../assets/img/shop/profile-site3.png'),
         description: 'Use this as your starting point for building a modern, super fast & great looking profile site. Especially targeted at consultants and freelancers. You coud add modules such as "Ledger" or the kanban app and build a business as well.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/profile-site2.png'),
           require('@/assets/img/shop/profile-site1.png'),
           require('@/assets/img/shop/profile-site3.png'),
           require('@/assets/img/shop/profile-site4.png')
         ],
-        developer: 'Eat Sleep Code Repeat'
+        developer: 'Holochain'
       },
       {
         category: 97,
@@ -99,13 +152,13 @@ export default {
         type: 'application',
         preview: require('../../assets/img/shop/performer-profile1.png'),
         description: 'The Performer Profile Site includes photos & music tools and sice most performers would like to cultivate a following there are modules for communicating with others who have registered. You can design your own forms you\'d like your fans to fill out as well as invite people to become part of your community.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/performer-profile1.png'),
           require('@/assets/img/shop/performer-profile2.png'),
           require('@/assets/img/shop/performer-profile3.png')
         ],
-        developer: 'Eat Sleep Code Repeat'
+        developer: 'Holochain'
       },
       {
         category: 5,
@@ -116,13 +169,13 @@ export default {
         preview: require('../../assets/img/shop/community.png'),
         route: '/elemental-chat',
         description: 'Instant messaging app with channels.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/elemental-chat1.png'),
           require('@/assets/img/shop/elemental-chat2.png'),
           require('@/assets/img/shop/elemental-chat3.png')
         ],
-        developer: 'Eat Sleep Code Repeat'
+        developer: 'Holochain'
       },
       {
         category: 5,
@@ -141,7 +194,7 @@ export default {
         price: '1000',
         route: '/builder',
         description: 'Builder IDE is a Code Editor with a set of menu items for quickly creating your very own Holo Applications. Choose from a range of base projects that are complete functioning Holo apps to get you started. Then add extra functionality with complete modules. You can also add new layouts, views & entry types. Builder also comes with its own Developer Holochain conductor where you can add Demo Agents and install your new DNA for each Agent. You can also lint your files and run DNA tests right from the menu.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         preview: require('@/assets/img/shop/builder1.png'),
         screens: [
           require('@/assets/img/shop/builder1.png'),
@@ -149,7 +202,7 @@ export default {
           require('@/assets/img/shop/builder3.png'),
           require('@/assets/img/shop/builder5.png')
         ],
-        developer: 'Eat Sleep Code Repeat'
+        developer: 'Holochain'
       },
       {
         category: 4,
@@ -159,7 +212,7 @@ export default {
         price: '1000',
         route: '/ledger-invoices',
         description: 'Ledger is an invoicing and expenses app designed for the individual consultant. Add how you want to get paid to the consultsant profile and then add clients. Record the work you are doing for a client as line items in an invoice. When you send the invocie to be paid simply drag it to the "Sent" column and when it\'s paid drag it to the "Paid" column.',
-        developerDescription: 'e-s-c-r\'s core focus is building high quality certified applications and modules for Holo & Holochain. Always on the bleeding edge of Holochain e-s-c-r is continuously improving, automating & using their own applications.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         preview: require('@/assets/img/shop/ledger-preview.png'),
         screens: [
           require('@/assets/img/shop/ledger-client.png'),
@@ -168,8 +221,40 @@ export default {
           require('@/assets/img/shop/ledger-contacts.png'),
           require('@/assets/img/shop/ledger-profile.png')
         ],
-        developer: 'Eat Sleep Code Repeat',
+        developer: 'Holochain',
         plugin: 'vue-cli-plugin-holochain-module-ledger'
+      },
+      {
+        category: 491,
+        uuid: '7d3d60ab-ac36-49fc-b882-f47d16ca7949',
+        name: 'Basic',
+        type: 'app-plugin',
+        price: '1000',
+        description: 'A basic setup for publishing vue-cli-plugins. This app-plugin type creates a full website overwriting the App.vue.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
+        preview: require('@/assets/img/shop/basic-app-plugin-template1.png'),
+        screens: [
+          require('@/assets/img/shop/basic-app-plugin-template1.png'),
+          require('@/assets/img/shop/basic-app-plugin-template2.png')
+        ],
+        developer: 'Holochain',
+        template: 'basic'
+      },
+      {
+        category: 555,
+        uuid: 'a54f24d7-d908-4824-ad40-d21dfb6b8474',
+        name: 'Basic',
+        type: 'module-plugin',
+        price: '1000',
+        description: 'A basic setup for publishing vue-cli-plugins. This module-plugin needs to be installed into an existing app.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
+        preview: require('@/assets/img/shop/basic-module-plugin-template1.png'),
+        screens: [
+          require('@/assets/img/shop/basic-module-plugin-template1.png'),
+          require('@/assets/img/shop/basic-module-plugin-template2.png')
+        ],
+        developer: 'Holochain',
+        template: 'basic'
       }
     ]
   },

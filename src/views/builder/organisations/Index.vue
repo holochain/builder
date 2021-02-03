@@ -5,7 +5,13 @@
         <v-img contain :src="require('@/assets/holochain-halo.png')">
         </v-img>
       </v-avatar>
-      <v-toolbar-title class="mt-n1 mr-1 font-weight-black">Builder Organisations</v-toolbar-title>
+      <v-toolbar-title class="mt-n1 mr-1 font-weight-black">
+        Builder Organisations
+      </v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-btn icon @click="newOrganisation">
+        <v-icon>mdi-briefcase-plus-outline</v-icon>
+      </v-btn>
     </v-app-bar>
     <v-container fluid>
       <v-row dense>
@@ -17,7 +23,7 @@
           md="4"
           sm="6"
         >
-          <v-card>
+          <v-card elevation="5">
             <v-img
               :src="organisation.logo"
               contain
@@ -30,11 +36,11 @@
 
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn icon @click="openOrganisationDetails(organisation)">
-                <v-icon>mdi-briefcase-edit-outline</v-icon>
-              </v-btn>
               <v-btn icon :to="`/builder/developer/${organisation.uuid}`">
                 <v-icon>mdi-code-braces</v-icon>
+              </v-btn>
+              <v-btn icon @click="openOrganisationDetails(organisation)">
+                <v-icon>mdi-briefcase-edit-outline</v-icon>
               </v-btn>
             </v-card-actions>
           </v-card>
@@ -61,14 +67,14 @@
               <v-col cols="6" class="pa-0">
                 <v-col cols="12" class="pa-0">
                   <v-text-field
-                    v-model="organisation.name"
+                    v-model="orgProfile.name"
                     label="Organisation's Name"
                     required
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" class="pa-0">
                   <v-text-field
-                    v-model="organisation.email"
+                    v-model="orgProfile.email"
                     label="Organisation's Email"
                     required
                   ></v-text-field>
@@ -80,7 +86,7 @@
                 cols="12"
               >
                 <v-textarea
-                  v-model="organisation.billingAddress"
+                  v-model="orgProfile.billingAddress"
                   label="Billing Entity Address*"
                   hint="What's your address"
                   rows="3"
@@ -90,7 +96,7 @@
               </v-col>
               <v-col cols="12">
                 <v-text-field
-                  v-model="organisation.financialInstitution"
+                  v-model="orgProfile.financialInstitution"
                   label="Financial Institution"
                   hint="eg: Transferwise"
                   persistent-hint
@@ -99,21 +105,21 @@
               </v-col>
               <v-col cols="12">
                 <v-text-field
-                  v-model="organisation.bsb"
+                  v-model="orgProfile.bsb"
                   label="BSB*"
                   required
                 ></v-text-field>
               </v-col>
               <v-col cols="12">
                 <v-text-field
-                  v-model="organisation.account"
+                  v-model="orgProfile.account"
                   label="Account Number*"
                   required
                 ></v-text-field>
               </v-col>
               <v-col cols="12">
                 <v-text-field
-                  v-model="organisation.billingContact"
+                  v-model="orgProfile.billingContact"
                   label="Account Holder*"
                   hint="eg: Your name"
                   persistent-hint
@@ -135,7 +141,7 @@
           <v-btn
             color="blue darken-1"
             text
-            @click="saveOrganisation(organisation); orgDrawerOpen = false"
+            @click="saveOrganisation(orgProfile); orgDrawerOpen = false"
           >
             Save
           </v-btn>
@@ -146,17 +152,43 @@
 </template>
 <script>
 import { mapActions, mapState } from 'vuex'
+import { v4 as uuidv4 } from 'uuid'
 export default {
   name: 'Organisations',
   components: {
   },
   data: () => ({
-    orgDrawerOpen: true,
-    orgProfile: {}
+    orgDrawerOpen: false,
+    orgProfile: {
+      uuid: uuidv4(),
+      path: 'Organisations',
+      name: '',
+      email: '',
+      billingContact: '',
+      billingAddress: '',
+      financialInstitution: '',
+      bsb: '',
+      account: ''
+    }
   }),
   methods: {
     ...mapActions('builderOrganisations', ['initialise', 'saveOrganisation']),
     openOrganisationDetails (org) {
+      this.orgProfile = { ...org }
+      this.orgDrawerOpen = true
+    },
+    newOrganisation () {
+      this.orgProfile = {
+        uuid: uuidv4(),
+        path: 'Organisations',
+        name: '',
+        email: '',
+        billingContact: '',
+        billingAddress: '',
+        financialInstitution: '',
+        bsb: '',
+        account: ''
+      }
       this.orgDrawerOpen = true
     }
   },

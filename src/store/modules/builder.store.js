@@ -23,6 +23,7 @@ export default {
     appInterface: {},
     applicationName: '',
     applications: [],
+    plugins: [],
     refreshKey: 0,
     treeRefreshKey: 0,
     stdOutMessages: [],
@@ -101,7 +102,7 @@ export default {
     }
   },
   actions: {
-    initialise ({ state, commit, dispatch }) {
+    initialise ({ state, commit, getters, dispatch }) {
       state.db = new Dexie('builder')
       state.db.version(1).stores({
         agents: 'uuid,name,parent',
@@ -118,16 +119,25 @@ export default {
         commit('committedFiles', committedFiles)
       })
       state.db.commits.toArray(commits => {
-        commit('commits', commits)
+        commit('setCommits', commits)
         if (localStorage.getItem('commitUuid')) {
           const uuid = localStorage.getItem('commitUuid')
           state.db.commits.where({ uuid }).first(com => {
-            const currentBranch = {
-              parentBranch: com.parentBranch,
-              branch: com.branch,
-              uuid
+            if (com.parentBranch === undefined) {
+              const currentBranch = {
+                parentBranch: '/',
+                branch: 'main',
+                uuid: ''
+              }
+              commit('setCurrentBranch', currentBranch)
+            } else {
+              const currentBranch = {
+                parentBranch: com.parentBranch,
+                branch: com.branch,
+                uuid
+              }
+              commit('setCurrentBranch', currentBranch)
             }
-            commit('setCurrentBranch', currentBranch)
           })
         } else {
           const currentBranch = {
@@ -154,15 +164,48 @@ export default {
 
       state.socket.on('GET_STATUS', file => {
         commit('stdOutMessage', `${file.parentDir}${file.name}`)
-        state.db.currentFiles.put(file)
+        if (file.parentDir === `/${state.applicationName}/commits/`) {
+          const savedCommit = JSON.parse(file.content)
+          state.db.commits.put(savedCommit)
+        } else {
+          state.db.currentFiles.put(file)
+        }
       })
       state.socket.on('GET_STATUS_ERROR', data => {
         console.log('GET_STATUS_ERROR', data)
       })
       state.socket.on('GET_STATUS_EXIT', () => {
-        // console.log('GET_STATUS_EXIT')
+        console.log('GET_STATUS_EXIT')
         state.db.currentFiles.toArray(currentFiles => {
           commit('currentFiles', currentFiles)
+          const branchCommits = getters.branchCommits
+          if (branchCommits[0]) {
+            localStorage.setItem('commitUuid', branchCommits[0].uuid)
+          } else {
+            localStorage.removeItem('commitUuid')
+          }
+          state.db.committedFiles.clear()
+          commit('committedFiles', [])
+          let branchFiles = []
+          branchCommits.forEach(bc => {
+            bc.newFiles.forEach(file => {
+              const keyFile = { ...file, key: `${file.parentDir}${file.name}` }
+              branchFiles.push(keyFile)
+            })
+            bc.updatedFiles.forEach(update => {
+              const fileToUpdate = branchFiles.find(file => file.key === `${update.parentDir}${update.name}`)
+              const dmp = new DiffMatchPatch()
+              const patches = dmp.patch_fromText(update.patch)
+              const result = dmp.patch_apply(patches, fileToUpdate.content)
+              fileToUpdate.content = result[0]
+            })
+            bc.deletedFiles.forEach(deleteFile => {
+              branchFiles = branchFiles.filter(file => file.key !== `${deleteFile.parentDir}${deleteFile.name}`)
+            })
+          })
+          branchFiles.forEach(file => delete file.key)
+          state.db.committedFiles.bulkPut(branchFiles)
+          commit('committedFiles', branchFiles)
           commit('incrementTreeRefreshKey')
           commit('stdOutMessage', 'GET_STATUS calculating changes')
           dispatch('getDnaPaths')
@@ -325,8 +368,11 @@ export default {
       state.socket.emit('DUPLICATE_ENTRY_TYPE', { name, entryTypeToDuplicate, newName })
     },
     async createApplication ({ state, commit }, payload) {
+      console.log(payload)
       const name = payload.name
       const preset = payload.preset
+      state.db.committedFiles.clear()
+      state.db.commits.clear()
       state.db.currentFiles.clear().then(() => {
         state.db.currentFiles.put({
           parentDir: '/',
@@ -336,6 +382,44 @@ export default {
         commit('setApplicationName', name)
         state.socket.emit('CREATE_APPLICATION', { name, preset })
       })
+    },
+    async createAppPluginFromTemplate ({ state, rootState, commit }, payload) {
+      const applicationName = payload.name
+      const product = payload.product
+      console.log(rootState)
+      const name = `vue-cli-plugin-${rootState.builderOrganisations.organisation.name}-app-${state.applicationName}`
+      state.db.committedFiles.clear()
+      state.db.commits.clear()
+      state.db.currentFiles.clear().then(() => {
+        state.db.currentFiles.put({
+          parentDir: '/',
+          name,
+          type: 'dir'
+        })
+        commit('setApplicationName', name)
+        state.socket.emit('CREATE_APP_PLUGIN', { applicationName, name, product })
+      })
+    },
+    async createModulePluginFromTemplate ({ state, rootState, commit }, payload) {
+      const applicationName = payload.name
+      const product = payload.product
+      console.log(rootState)
+      const name = `vue-cli-plugin-${rootState.builderOrganisations.organisation.name}-module-${state.applicationName}`
+      state.db.committedFiles.clear()
+      state.db.commits.clear()
+      state.db.currentFiles.clear().then(() => {
+        state.db.currentFiles.put({
+          parentDir: '/',
+          name,
+          type: 'dir'
+        })
+        commit('setApplicationName', name)
+        state.socket.emit('CREATE_MODULE_PLUGIN', { applicationName, name, product })
+      })
+    },
+    publishPlugin ({ state }, payload) {
+      const name = payload.name
+      state.socket.emit('PUBLISH_PLUGIN', { name })
     },
     async addModule ({ state }, payload) {
       const name = payload.name
@@ -351,6 +435,23 @@ export default {
       state.socket.emit('GET_APPLICATIONS', { name }, (entries) => {
         commit('setApplications', entries)
       })
+    },
+    getPlugins ({ state, rootState, commit }) {
+      const name = rootState.builderOrganisations.name
+      state.socket.emit('GET_PLUGINS', { name }, (entries) => {
+        console.log(entries)
+        commit('setPlugins', entries)
+      })
+    },
+    clearCommits ({ state, commit }) {
+      state.db.commits.clear()
+        .then(() => {
+          commit('setCommits', [])
+        })
+      state.db.committedFiles.clear()
+        .then(() => {
+          commit('committedFiles', [])
+        })
     },
     getStatus ({ state }, payload) {
       const name = payload.name
@@ -419,6 +520,8 @@ export default {
         updatedFiles: changes.updatedFiles,
         deletedFiles: changes.deletedFiles
       }
+      state.socket.emit('COMMIT_CHANGES', { application: state.applicationName, commit: JSON.stringify(newCommit) })
+
       commit('addCommit', newCommit)
       localStorage.setItem('commitUuid', newCommit.uuid)
       state.db.commits.put(newCommit)
@@ -947,6 +1050,9 @@ export default {
     setApplicationName (state, payload) {
       state.applicationName = payload
     },
+    setPlugins (state, payload) {
+      state.plugins = payload
+    },
     treeItems (state, payload) {
       state.treeItems = payload
       if (payload.length > 0) state.applicationName = payload[0].name
@@ -974,7 +1080,7 @@ export default {
     committedFiles (state, payload) {
       state.committedFiles = payload
     },
-    commits (state, payload) {
+    setCommits (state, payload) {
       state.commits = payload
     },
     addCommit (state, payload) {

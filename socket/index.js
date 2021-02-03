@@ -4,15 +4,17 @@ const builderOrg = process.argv[2]
 const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
 const devPresetsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/presets`
 const devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
+let rootDir = devAppsDir
 const io = require('socket.io')(server, options)
 const fs = require('fs')
 const SERVER_PORT = 45678
 const { spawn } = require('child_process')
+const npmLogin = require('npm-cli-login')
 let conductor = undefined
 let appServer = undefined
 
-if (!fs.existsSync(devAppsDir)) {
-  fs.mkdirSync(devAppsDir, { recursive: true })
+if (!fs.existsSync(rootDir)) {
+  fs.mkdirSync(rootDir, { recursive: true })
 }
 if (!fs.existsSync(devPresetsDir)) {
   fs.mkdirSync(devPresetsDir, { recursive: true })
@@ -28,7 +30,13 @@ function getFileType (fileName) {
   return fileType
 }
 function getFoldersAndFiles (parentDir, socket) {
+  if (parentDir.includes('vue-cli-plugin')) {
+    rootDir = devPluginsDir
+    console.log('RootDIR', rootDir)
+    console.log('parentDir', parentDir)
+  }
   const entries = fs.readdirSync(parentDir, { withFileTypes: true })
+  console.log('🚀 ~ file: index.js ~ line 38 ~ getFoldersAndFiles ~ entries', entries)
   const folders = entries
     .filter(entry => entry.isDirectory())
     .filter(entry => entry.name !== '.git')
@@ -44,7 +52,7 @@ function getFoldersAndFiles (parentDir, socket) {
     })
     if (folderEntries.length > 0) {
       const newDirectory = {
-        parentDir: parentDir.replace(`${devAppsDir}`, ''),
+        parentDir: parentDir.replace(`${rootDir}`, ''),
         name: folder.name,
         type: 'dir'
       }
@@ -71,7 +79,7 @@ function getFoldersAndFiles (parentDir, socket) {
     }
 
     const newFile = {
-      parentDir: parentDir.replace(`${devAppsDir}`, ''),
+      parentDir: parentDir.replace(`${rootDir}`, ''),
       name: file.name,
       type: 'file',
       extension: fileExtension,
@@ -91,8 +99,10 @@ io.on('connection', socket => {
   })
 
   socket.on('SAVE_FILE', payload => {
+    console.log(payload)
+    if (payload.parentDir.includes('vue-cli-plugin')) rootDir = devPluginsDir
     fs.writeFile(
-      `${devAppsDir}/${payload.parentDir}${payload.name}`,
+      `${rootDir}${payload.parentDir}${payload.name}`,
       payload.content,
       err => {
         if (err) throw err
@@ -104,7 +114,7 @@ io.on('connection', socket => {
   socket.on('SAVE_UPLOADED_IMAGE', (payload, callback) => {
     const file = payload
     console.log(payload)
-    const fileName = `${devAppsDir}${file.parentDir}${file.name}`
+    const fileName = `${rootDir}${file.parentDir}${file.name}`
     let content = ''
     let fileExtension = getFileType(file.name)
     if (fileExtension === 'jpg') fileExtension = 'jpeg'
@@ -116,7 +126,7 @@ io.on('connection', socket => {
     console.log(content.substring(0, 40))
 
     const newFile = {
-      parentDir: file.parentDir.replace(`${devAppsDir}`, ''),
+      parentDir: file.parentDir.replace(`${rootDir}`, ''),
       name: file.name,
       type: 'file',
       extension: fileExtension,
@@ -128,7 +138,7 @@ io.on('connection', socket => {
 
   socket.on('CREATE_DIRECTORY', (payload, callback) => {
     console.log('CREATE_DIRECTORY', payload)
-    fs.mkdir(`${devAppsDir}/dev-apps/${payload.path}`, { recursive: true },
+    fs.mkdir(`${rootDir}/dev-apps/${payload.path}`, { recursive: true },
       (err) => {
         if (err) throw err
         callback(err, `Added ${payload}`)
@@ -137,7 +147,12 @@ io.on('connection', socket => {
   })
 
   socket.on('CHANGE_BRANCH', (payload) => {
-    const removeFiles = `cd ${devAppsDir} && rm -rf ${payload.name} && mkdir ${payload.name}`
+    if (appServer !== undefined) {
+      appServer.stdin.end()
+      appServer.kill('SIGINT')
+      appServer = undefined
+    }
+    const removeFiles = `cd ${rootDir} && rm -rf ${payload.name} && mkdir ${payload.name}`
     const fileRemover = spawn(removeFiles, { shell: true })
     fileRemover.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
@@ -150,7 +165,7 @@ io.on('connection', socket => {
     fileRemover.on('exit', function (exitCode) {
       const files = payload.files
       files.forEach(file => {
-        const dir = `${devAppsDir}${file.parentDir}`
+        const dir = `${rootDir}${file.parentDir}`
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true })
         }
@@ -166,7 +181,7 @@ io.on('connection', socket => {
         }
         socket.emit('TERMINAL_STDOUT', `${dir}${file.name}`)
       })
-      const yarnInstallCmd = `cd ${devAppsDir}/${payload.name} && yarn install`
+      const yarnInstallCmd = `cd ${rootDir}/${payload.name} && yarn install`
       const yarnInstall = spawn(yarnInstallCmd, { shell: true })
       yarnInstall.stderr.on('data', function (err) {
         socket.emit('TERMINAL_ERROR', err.toString())
@@ -213,7 +228,7 @@ io.on('connection', socket => {
 
   socket.on('CLONE_DNA', (payload, callback) => {
     console.log('CLONE_DNA', payload)
-    const cloneDna = `cp -r ./templates/dna/${payload.template} ${devAppsDir}/${payload.name}/dna && mv ${devAppsDir}/${payload.name}/dna/${payload.template}.dna.workdir ${devAppsDir}/${payload.name}/dna/${payload.name}.dna.workdir && mv ${devAppsDir}/${payload.name}/dna/tests/src/${payload.template}.ts ${devAppsDir}/${payload.name}/dna/tests/src/${payload.name}.ts && mv ${devAppsDir}/${payload.name}/dna/zomes/${payload.template} ${devAppsDir}/${payload.name}/dna/zomes/${payload.name} && cd ${devAppsDir}/${payload.name}/dna && grep -rl '${payload.template.charAt(0).toUpperCase()}${payload.template.slice(1)}' . | xargs sed -i "" 's/${payload.template.charAt(0).toUpperCase()}${payload.template.slice(1)}/${payload.name.charAt(0).toUpperCase()}${payload.name.slice(1)}/g' && grep -rl '${payload.template}' . | xargs sed -i "" 's/${payload.template}/${payload.name}/g' && cd ${devAppsDir}/${payload.name}/dna/tests && npm install`
+    const cloneDna = `cp -r ./templates/dna/${payload.template} ${rootDir}/${payload.name}/dna && mv ${rootDir}/${payload.name}/dna/${payload.template}.dna.workdir ${rootDir}/${payload.name}/dna/${payload.name}.dna.workdir && mv ${rootDir}/${payload.name}/dna/tests/src/${payload.template}.ts ${rootDir}/${payload.name}/dna/tests/src/${payload.name}.ts && mv ${rootDir}/${payload.name}/dna/zomes/${payload.template} ${rootDir}/${payload.name}/dna/zomes/${payload.name} && cd ${rootDir}/${payload.name}/dna && grep -rl '${payload.template.charAt(0).toUpperCase()}${payload.template.slice(1)}' . | xargs sed -i "" 's/${payload.template.charAt(0).toUpperCase()}${payload.template.slice(1)}/${payload.name.charAt(0).toUpperCase()}${payload.name.slice(1)}/g' && grep -rl '${payload.template}' . | xargs sed -i "" 's/${payload.template}/${payload.name}/g' && cd ${rootDir}/${payload.name}/dna/tests && npm install`
     const dnaCloner = spawn(cloneDna, { shell: true })
     dnaCloner.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
@@ -229,7 +244,7 @@ io.on('connection', socket => {
 
   socket.on('RENAME_ENTRY_TYPE', (payload) => {
     console.log('RENAME_ENTRY_TYPE', payload)
-    const renameCmd = `mv ${devAppsDir}${payload.entryTypeToDuplicate.parentDir}${payload.entryTypeToDuplicate.name} ${devAppsDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && cd ${devAppsDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
+    const renameCmd = `mv ${rootDir}${payload.entryTypeToDuplicate.parentDir}${payload.entryTypeToDuplicate.name} ${rootDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && cd ${rootDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
     console.log('socket.on ~ renameCmd', renameCmd)
     const renamer = spawn(renameCmd, { shell: true })
     renamer.stderr.on('data', function (err) {
@@ -241,7 +256,7 @@ io.on('connection', socket => {
       socket.emit('TERMINAL_STDOUT', data.toString())
     })
     renamer.on('exit', function () {
-      const renameCmd = `mv ${devAppsDir}${payload.entryTypeToDuplicate.testPath}${payload.entryTypeToDuplicate.name} ${devAppsDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && cd ${devAppsDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
+      const renameCmd = `mv ${rootDir}${payload.entryTypeToDuplicate.testPath}${payload.entryTypeToDuplicate.name} ${rootDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && cd ${rootDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
       console.log('socket.on ~ renameCmd', renameCmd)
       const testRenamer = spawn(renameCmd, { shell: true })
       testRenamer.stderr.on('data', function (err) {
@@ -253,7 +268,7 @@ io.on('connection', socket => {
       })
       testRenamer.on('exit', function () {
         socket.emit('TERMINAL_EXIT', 'RENAME_ENTRY_TYPE_FINISHED')
-        getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+        getFoldersAndFiles(`${rootDir}/${payload.name}/`, socket)
         socket.emit('GET_STATUS_EXIT')
       })
     })
@@ -261,7 +276,7 @@ io.on('connection', socket => {
 
   socket.on('DUPLICATE_ENTRY_TYPE', (payload) => {
     console.log('DUPLICATE_ENTRY_TYPE', payload)
-    const renameCmd = `cp -r ${devAppsDir}${payload.entryTypeToDuplicate.parentDir}${payload.entryTypeToDuplicate.name} ${devAppsDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && cd ${devAppsDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
+    const renameCmd = `cp -r ${rootDir}${payload.entryTypeToDuplicate.parentDir}${payload.entryTypeToDuplicate.name} ${rootDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && cd ${rootDir}${payload.entryTypeToDuplicate.parentDir}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
     console.log('socket.on ~ renameCmd', renameCmd)
     const renamer = spawn(renameCmd, { shell: true })
     renamer.stderr.on('data', function (err) {
@@ -273,7 +288,7 @@ io.on('connection', socket => {
       socket.emit('TERMINAL_STDOUT', data.toString())
     })
     renamer.on('exit', function () {
-      const renameCmd = `cp -r ${devAppsDir}${payload.entryTypeToDuplicate.testPath}${payload.entryTypeToDuplicate.name} ${devAppsDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && cd ${devAppsDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
+      const renameCmd = `cp -r ${rootDir}${payload.entryTypeToDuplicate.testPath}${payload.entryTypeToDuplicate.name} ${rootDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && cd ${rootDir}/${payload.entryTypeToDuplicate.testPath}${payload.newName} && grep -rl '${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name.charAt(0).toUpperCase()}${payload.entryTypeToDuplicate.name.slice(1)}/${payload.newName.charAt(0).toUpperCase()}${payload.newName.slice(1)}/g' && grep -rl '${payload.entryTypeToDuplicate.name}' . | xargs sed -i "" 's/${payload.entryTypeToDuplicate.name}/${payload.newName}/g'`
       console.log('socket.on ~ renameCmd', renameCmd)
       const testRenamer = spawn(renameCmd, { shell: true })
       testRenamer.stderr.on('data', function (err) {
@@ -285,7 +300,7 @@ io.on('connection', socket => {
       })
       testRenamer.on('exit', function () {
         socket.emit('TERMINAL_EXIT', 'DUPLICATE_ENTRY_TYPE_FINISHED')
-        getFoldersAndFiles(`${devAppsDir}/${payload.name}/dna/`, socket)
+        getFoldersAndFiles(`${rootDir}/${payload.name}/dna/`, socket)
         socket.emit('GET_STATUS_EXIT')
       })
     })
@@ -293,7 +308,7 @@ io.on('connection', socket => {
 
   socket.on('CLONE_WEB_PART', (payload, callback) => {
     console.log('CLONE_WEB_PART', payload)
-    const cloneDna = `cp -r ./templates/${payload.webPartType}/${payload.template} ${devAppsDir}/${payload.name}/src/${payload.webPartType}/${payload.name}/${payload.webPartName}`
+    const cloneDna = `cp -r ./templates/${payload.webPartType}/${payload.template} ${rootDir}/${payload.name}/src/${payload.webPartType}/${payload.name}/${payload.webPartName}`
     const dnaCloner = spawn(cloneDna, { shell: true })
     dnaCloner.stderr.on('data', function (err) {
       socket.emit('TERMINAL_STDOUT', err.toString())
@@ -303,48 +318,167 @@ io.on('connection', socket => {
     })
     dnaCloner.on('exit', function () {
       socket.emit('TERMINAL_EXIT', 'CLONE_WEB_PART_FINISHED')
-      getFoldersAndFiles(`${devAppsDir}/${payload.name}/src/`, socket)
+      getFoldersAndFiles(`${rootDir}/${payload.name}/src/`, socket)
       socket.emit('GET_STATUS_EXIT')
     })
   })
 
-  socket.on('GET_STATUS', (payload, callback) => {
-    console.log('GET_STATUS', payload.name)
-    getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+  socket.on('GET_STATUS', (payload) => {
+    console.log(payload)
+    if (payload.name.includes('vue-cli-plugin')) {
+      rootDir = devPluginsDir
+      console.log('GET_STATUS RootDIR', rootDir)
+      console.log('GET_STATUS payload.name', payload.name)
+    } else {
+      rootDir = devAppsDir
+      console.log('GET_STATUS RootDIR', rootDir)
+      console.log('GET_STATUS payload.name', payload.name)
+    }
+    getFoldersAndFiles(`${rootDir}/${payload.name}/`, socket)
     socket.emit('GET_STATUS_EXIT')
   })
 
-  socket.on('GET_APPLICATIONS', (payload, callback) => {
-    console.log('GET_APPLICATIONS', payload.name)
-    console.log(devAppsDir)
-    const entries = fs.readdirSync(`${devAppsDir}/`, { withFileTypes: true }).filter(entry => entry.isDirectory())
-    console.log('🚀 ~ file: index.js ~ line 321 ~ socket.on ~ entries', entries)
+  socket.on('GET_APPLICATIONS', (_, callback) => {
+    console.log('GET_APPLICATIONS')
+    console.log(rootDir)
+    const entries = fs.readdirSync(`${rootDir}/`, { withFileTypes: true }).filter(entry => entry.isDirectory())
     callback(entries)
+  })
+
+  socket.on('GET_PLUGINS', (_, callback) => {
+    console.log('GET_PLUGINS')
+    console.log(devPluginsDir)
+    const entries = fs.readdirSync(`${devPluginsDir}/`, { withFileTypes: true }).filter(entry => entry.isDirectory())
+    callback(entries)
+  })
+
+  socket.on('COMMIT_CHANGES', (payload) => {
+    console.log('COMMIT_CHANGES', payload)
+    console.log(rootDir)
+    const commit = JSON.parse(payload.commit)
+    if (!fs.existsSync(`${rootDir}/${payload.application}/commits`)) {
+      fs.mkdirSync(`${rootDir}/${payload.application}/commits`, { recursive: true })
+    }
+    fs.writeFile(
+      `${rootDir}/${payload.application}/commits/${commit.uuid}.json`,
+      payload.commit,
+      err => {
+        if (err) throw err
+        console.log('Commit saved!')
+      }
+    )
   })
 
   socket.on('CREATE_APPLICATION', (payload) => {
     console.log(payload)
-    const createApp = `cd ${devAppsDir} && npx vue create ${payload.name} --preset ${payload.preset} --no-git`
-    console.log('CREATE_APPLICATION', createApp)
-    const appCreator = spawn(createApp, { shell: true })
-    appCreator.stderr.on('data', function (err) {
+    // save the preset as a file for vue cli
+    fs.writeFile(`${devAppsDir}/preset.json`, JSON.stringify(payload.preset),
+      err => {
+        if (err) throw err
+        console.log('preset.json saved!')
+        const createApp = `cd ${devAppsDir} && npx vue create ${payload.name} --preset ./preset.json --no-git`
+        console.log('CREATE_APPLICATION', createApp)
+        const appCreator = spawn(createApp, { shell: true })
+        appCreator.stderr.on('data', function (err) {
+          console.error('STDERR:', err.toString())
+          socket.emit('TERMINAL_ERROR', err.toString())
+        })
+        appCreator.stdout.on('data', function (data) {
+          console.log('STDOUT:', data.toString())
+          socket.emit('TERMINAL_STDOUT', data.toString())
+        })
+        appCreator.on('exit', function (exitCode) {
+          console.log('Child exited with code: ' + exitCode)
+          socket.emit('TERMINAL_EXIT', 'CREATE_APPLICATION_FINISHED')
+          getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+          socket.emit('GET_STATUS_EXIT')
+        })
+      }
+    )
+  })
+
+  socket.on('CREATE_APP_PLUGIN', (payload) => {
+    console.log(payload)
+    rootDir = devPluginsDir
+    const name = payload.name
+    const applicationName = payload.applicationName
+    const product = payload.product
+    const cloneAppPluginTemplate = `cp -r ./templates/app-plugins/${product.template} ${devPluginsDir}/${name}`
+    const appPluginCloner = spawn(cloneAppPluginTemplate, { shell: true })
+    appPluginCloner.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
-      socket.emit('TERMINAL_ERROR', err.toString())
     })
-    appCreator.stdout.on('data', function (data) {
+    appPluginCloner.stdout.on('data', function (data) {
       console.log('STDOUT:', data.toString())
       socket.emit('TERMINAL_STDOUT', data.toString())
     })
-    appCreator.on('exit', function (exitCode) {
+    appPluginCloner.on('exit', function (exitCode) {
       console.log('Child exited with code: ' + exitCode)
-      socket.emit('TERMINAL_EXIT', 'CREATE_APPLICATION_FINISHED')
-      getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
-      socket.emit('GET_STATUS_EXIT')
+      const cloneAppPlginFilesCommand = `mkdir -p ${devPluginsDir}/${name}/generator/templates/${applicationName} && cp -r ${devAppsDir}/${applicationName}/src ${devPluginsDir}/${name}/generator/templates/${applicationName} && cp -r ${devAppsDir}/${applicationName}/tests ${devPluginsDir}/${name}/generator/templates/${applicationName} && mkdir -p ${devPluginsDir}/${name}/generator/templates/${applicationName}/public && cp ${devAppsDir}/${applicationName}/public/robots.txt ${devPluginsDir}/${name}/generator/templates/${applicationName}/public && cp ${devAppsDir}/${applicationName}/Procfile ${devPluginsDir}/${name}/generator/templates/${applicationName}/Procfile`
+      const appPluginFilesCloner = spawn(cloneAppPlginFilesCommand, { shell: true })
+      appPluginFilesCloner.stderr.on('data', function (err) {
+        socket.emit('TERMINAL_ERROR', err.toString())
+      })
+      appPluginFilesCloner.stdout.on('data', function (data) {
+        socket.emit('TERMINAL_STDOUT', data.toString())
+      })
+      appPluginFilesCloner.on('exit', function () {
+        socket.emit('TERMINAL_EXIT', 'CREATE_APP_PLUGIN_FINISHED')
+        getFoldersAndFiles(`${devPluginsDir}/${payload.name}/`, socket)
+      })
+    })
+  })
+
+  socket.on('CREATE_MODULE_PLUGIN', (payload) => {
+    console.log(payload)
+    rootDir = devPluginsDir
+    const name = payload.name
+    // const applicationName = payload.applicationName
+    const product = payload.product
+    const cloneModulePluginTemplate = `cp -r ./templates/module-plugins/${product.template} ${devPluginsDir}/${name}`
+    const modulePluginCloner = spawn(cloneModulePluginTemplate, { shell: true })
+    modulePluginCloner.stderr.on('data', function (err) {
+      console.error('STDERR:', err.toString())
+    })
+    modulePluginCloner.stdout.on('data', function (data) {
+      console.log('STDOUT:', data.toString())
+      socket.emit('TERMINAL_STDOUT', data.toString())
+    })
+    modulePluginCloner.on('exit', function (exitCode) {
+      console.log('Child exited with code: ' + exitCode)
+      // const cloneAppPlginFilesCommand = `mkdir -p ${devPluginsDir}/${name}/generator/templates/${applicationName} && cp -r ${devAppsDir}/${applicationName}/src ${devPluginsDir}/${name}/generator/templates/${applicationName} && cp -r ${devAppsDir}/${applicationName}/tests ${devPluginsDir}/${name}/generator/templates/${applicationName} && mkdir -p ${devPluginsDir}/${name}/generator/templates/${applicationName}/public && cp ${devAppsDir}/${applicationName}/public/robots.txt ${devPluginsDir}/${name}/generator/templates/${applicationName}/public && cp ${devAppsDir}/${applicationName}/Procfile ${devPluginsDir}/${name}/generator/templates/${applicationName}/Procfile`
+      // const appPluginFilesCloner = spawn(cloneAppPlginFilesCommand, { shell: true })
+      // appPluginFilesCloner.stderr.on('data', function (err) {
+      //   socket.emit('TERMINAL_ERROR', err.toString())
+      // })
+      // appPluginFilesCloner.stdout.on('data', function (data) {
+      //   socket.emit('TERMINAL_STDOUT', data.toString())
+      // })
+      // appPluginFilesCloner.on('exit', function () {
+      //   socket.emit('TERMINAL_EXIT', 'CREATE_APP_PLUGIN_FINISHED')
+      getFoldersAndFiles(`${devPluginsDir}/${payload.name}/`, socket)
+      // })
+    })
+  })
+
+  socket.on('PUBLISH_PLUGIN', (payload) => {
+    npmLogin('philipbeadle', 'horsechildsuperbeach', 'philip.beadle@holo.host')
+    const name = payload.name
+    const publishCommand = `cd ${devPluginsDir}/${name} && npm publish`
+    const publisher = spawn(publishCommand, { shell: true })
+    publisher.stderr.on('data', function (err) {
+      socket.emit('TERMINAL_ERROR', err.toString())
+    })
+    publisher.stdout.on('data', function (data) {
+      socket.emit('TERMINAL_STDOUT', data.toString())
+    })
+    publisher.on('exit', function () {
+      socket.emit('TERMINAL_EXIT', 'PUBLISH_PLUGIN_FINISHED')
     })
   })
 
   socket.on('ADD_MODULE', (payload) => {
-    const yarnAddCommand = `cd ${devAppsDir}/${payload.name} && yarn add ${payload.plugin}`
+    const yarnAddCommand = `cd ${rootDir}/${payload.name} && yarn add ${payload.plugin}`
     console.log(yarnAddCommand)
     const yarnAdd = spawn(yarnAddCommand, { shell: true })
     yarnAdd.stderr.on('data', function (err) {
@@ -357,7 +491,7 @@ io.on('connection', socket => {
     })
     yarnAdd.on('exit', function (exitCode) {
       console.log('Child exited with code: ' + exitCode)
-      const invokePlugin = `cd ${devAppsDir}/${payload.name} && npx vue invoke ${payload.plugin}`
+      const invokePlugin = `cd ${rootDir}/${payload.name} && npx vue invoke ${payload.plugin}`
       const pluginInvoker = spawn(invokePlugin, { shell: true })
       pluginInvoker.stderr.on('data', function (err) {
         console.error('STDERR:', err.toString())
@@ -370,14 +504,14 @@ io.on('connection', socket => {
       pluginInvoker.on('exit', function (exitCode) {
         console.log('Child exited with code: ' + exitCode)
         socket.emit('TERMINAL_EXIT', 'ADD_MODULE_FINISHED')
-        getFoldersAndFiles(`${devAppsDir}/${payload.name}/`, socket)
+        getFoldersAndFiles(`${rootDir}/${payload.name}/`, socket)
         socket.emit('GET_STATUS_EXIT')
       })
     })    
   })
 
   socket.on('LINT_FILES', (payload, callback) => {
-    const lintFiles = `cd ${devAppsDir}/${payload.name} && yarn lint`
+    const lintFiles = `cd ${rootDir}/${payload.name} && yarn lint`
     console.log('LINT_FILES', lintFiles)
     const fileLinter = spawn(lintFiles, { shell: true })
     fileLinter.stderr.on('data', function (err) {
@@ -392,7 +526,12 @@ io.on('connection', socket => {
   })
 
   socket.on('START_WEB_SERVER', (payload) => {
-    const serveWebApp = `cd ${devAppsDir}/${payload.name} && yarn start`
+    if (appServer !== undefined) {
+      appServer.stdin.end()
+      appServer.kill('SIGINT')
+      appServer = undefined
+    }
+    const serveWebApp = `cd ${rootDir}/${payload.name} && yarn start`
     appServer = spawn(serveWebApp, { shell: true })
     appServer.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
@@ -461,7 +600,7 @@ io.on('connection', socket => {
   })
 
   socket.on('TEST_DNA', (payload, callback) => {
-    const testDnaCmd = `cd ${devAppsDir}${payload.path}/tests && yarn install && yarn test`
+    const testDnaCmd = `cd ${rootDir}${payload.path}/tests && yarn install && yarn test`
     console.log('TEST_DNA', testDnaCmd)
     const dnaTester = spawn(testDnaCmd, { shell: true })
     dnaTester.stderr.on('data', function (err) {
@@ -480,7 +619,7 @@ io.on('connection', socket => {
 
   socket.on('YARN_ADD', (payload, callback) => {
     console.log('YARN_ADD')
-    const yarnAddCommand = `cd ${devAppsDir}/${payload.name} && yarn add ${payload.modules}`
+    const yarnAddCommand = `cd ${rootDir}/${payload.name} && yarn add ${payload.modules}`
     console.log('YARN_ADD', yarnAddCommand)
     const yarnAdd = spawn(yarnAddCommand, { shell: true })
     yarnAdd.stderr.on('data', function (err) {
@@ -498,7 +637,7 @@ io.on('connection', socket => {
   })
 
   socket.on('REINSTALL_NODE_MODULES', (payload) => {
-    const yarnReinstallCmd = `cd ${devAppsDir}/${payload.name} && rm -rf node_modules && yarn install`
+    const yarnReinstallCmd = `cd ${rootDir}/${payload.name} && rm -rf node_modules && yarn install`
       const yarnInstall = spawn(yarnReinstallCmd, { shell: true })
       yarnInstall.stderr.on('data', function (err) {
         socket.emit('TERMINAL_ERROR', err.toString())

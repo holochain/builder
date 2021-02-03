@@ -1,0 +1,21 @@
+{
+  "name": "vue-cli-plugin-holochain-module-ledger",
+  "version": "0.0.8.dev-1",
+  "description": "Manage your invoicing",
+  "author": "Philip Beadle <philip.beadle@holo.host>",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint --ext .js,.vue ."
+  },
+  "dependencies": {
+    "semver": "^7.1.2"
+  },
+  "peerDependenciesMeta": {
+    "sass-loader": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

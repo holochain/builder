@@ -1,2 +1,2 @@
-socket: cd socket && nodemon socket.js eat-sleep-code-repeat
+socket: cd socket && nodemon socket.js holochain
 builder: yarn builder

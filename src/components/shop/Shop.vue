@@ -71,7 +71,7 @@
 <script>
 import { mapState } from 'vuex'
 export default {
-  props: ['items', 'initialCategory'],
+  props: ['items', 'filter'],
   data () {
     return {
       range: [0, 10000],
@@ -118,8 +118,8 @@ export default {
     }
   },
   watch: {
-    initialCategory (old, val) {
-      this.selectedCategory = this.initialCategory
+    filter (val) {
+      this.selectedCategory = val.categoryId
     }
   }
 }

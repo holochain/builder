@@ -17,31 +17,99 @@
             v-bind="attrs"
             v-on="on"
           >
-            Project
+            File
           </v-btn>
         </template>
         <v-list dense>
           <v-list-item
-            @click="openShop(true)"
+            key="newShellProject"
+          >
+            <v-list-item-title>New Application</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            @click="openShop({
+              text: 'Application',
+              action: 'Create New Application from this Preset',
+              categoryId: 49
+            })"
             key="newProject"
           >
-            <v-list-item-title>New From Preset</v-list-item-title>
+            <v-list-item-title>New Application From Preset</v-list-item-title>
           </v-list-item>
+          <v-list-item
+            @click="openShop({
+              text: 'Vue Cli Plugin (Application)',
+              action: `Create New vue-cli-plugin-${organisation.name}-app-${applicationName}`,
+              event: 'app-plugin-template',
+              categoryId: 491
+            })"
+            key="newCliApp"
+          >
+            <v-list-item-title v-if="organisation">New vue-cli-plugin-{{ organisation.name }}-app-{{ applicationName }}</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            @click="openShop({
+              text: 'Vue Cli Plugin (Module)',
+              action: `Create New vue-cli-plugin-${organisation.name}-module-${applicationName}`,
+              event: 'module-plugin-template',
+              categoryId: 555
+            })"
+            key="newCliModule"
+          >
+            <v-list-item-title>New vue-cli-plugin-{{ organisation.name }}-module-{{ applicationName }}</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
           <v-list-item v-for="application in applications"
             @click="stdMessagesDialog = true;
               resetConductor();
-              terminalTab = 0;
-              getStatus({ name: application.name });"
-            :key="application.uuid"
+              clearCommits().then(() => getStatus({ name: application.name }));
+              terminalTab = 0;"
+            :key="`${application.name}application`"
           >
-            <v-list-item-title>Open {{ application.name }} Application</v-list-item-title>
+            <v-list-item-title>Open '{{ application.name }}' Application</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
+          <v-list-item v-for="plugin in plugins"
+            @click="stdMessagesDialog = true;
+              resetConductor();
+              clearCommits().then(() => getStatus({ name: plugin.name }));
+              terminalTab = 0;"
+            :key="`${plugin.name}plugin`"
+          >
+            <v-list-item-title>Open '{{ plugin.name.replace('vue-cli-plugin-', '') }}' Cli Plugin</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Package for Holo</v-list-item-title>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title class="grey--text">Package for Holochain</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+      <v-menu offset-y dark>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+            color="action darken-1"
+            tile
+            text
+            dark
+            small
+            v-bind="attrs"
+            v-on="on"
+          >
+            Application
+          </v-btn>
+        </template>
+        <v-list dense>
           <v-list-item
             v-if="applicationName !== ''"
             key="addModule"
-            @click="openShop(false)"
-          >
+            @click="openShop({
+              text: 'Module',
+              action: `Add Module`,
+              categoryId: 5
+            })">
             <v-list-item-title>Add Module</v-list-item-title>
           </v-list-item>
           <v-list-item
@@ -67,29 +135,6 @@
             <v-list-item-title class="grey--text">Add Component</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
-          <v-list-item>
-            <v-list-item-title class="grey--text">Package for Holo</v-list-item-title>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="grey--text">Package for Holochain</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-      <v-menu offset-y dark>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-            color="action darken-1"
-            tile
-            text
-            dark
-            small
-            v-bind="attrs"
-            v-on="on"
-          >
-            DNA
-          </v-btn>
-        </template>
-        <v-list dense>
           <v-list-item
             key="newDna"
             @click="
@@ -253,11 +298,14 @@
             <v-list-item-title class="grey--text">Share Your Changes</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
-          <v-list-item>
-            <v-list-item-title class="grey--text">Publish Preset</v-list-item-title>
-          </v-list-item>
-          <v-list-item>
-            <v-list-item-title class="grey--text">Publish Plugin</v-list-item-title>
+          <v-list-item
+            key="publishPlugin"
+            @click="
+              stdMessagesDialog = true;
+              terminalTab = 0;
+              publishPlugin({ name: applicationName });
+            ">
+            <v-list-item-title>Publish Plugin</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -556,21 +604,20 @@
     >
       <v-card dark dense flat class="fill-height">
         <v-system-bar window dark>
-          <span v-if="newApplication">New Application</span>
-          <span v-else>New Module</span>
+          <span>New {{ filter.text }}</span>
           <v-spacer></v-spacer>
           <v-icon v-if="shop === false" @click="shop = true">mdi-store-outline</v-icon>
           <v-icon @click="myappDrawerOpen = false; shop = true  ">mdi-close</v-icon>
         </v-system-bar>
-        <v-card-text v-if="newApplication && !shop">
+        <v-card-text v-if="filter.text === 'Application' && !shop">
           <v-text-field
             label="Name of your new Holochain App"
             v-model="name"
             dense
           ></v-text-field>
         </v-card-text>
-        <shop v-if="shop" :items="items" :initialCategory="initialCategory" @show-product="showProduct"/>
-        <product v-else :product="selectedProduct" :newApplication="newApplication" @install="install"/>
+        <shop v-if="shop" :items="items" :filter="filter" @show-product="showProduct"/>
+        <product v-else :product="selectedProduct" :filter="filter" @install="install" @app-plugin-template="appPluginTemplate" @module-plugin-template="modulePluginTemplate"/>
       </v-card>
     </v-navigation-drawer>
     <v-navigation-drawer
@@ -635,7 +682,12 @@ export default {
         developer: '',
         plugin: ''
       },
-      newApplication: true,
+      filter: {
+        filter: '',
+        text: '',
+        action: '',
+        categoryId: ''
+      },
       initialCategory: 0
     }
   },
@@ -643,6 +695,7 @@ export default {
     ...mapState('builder', [
       'conductor',
       'applications',
+      'plugins',
       'applicationName',
       'dnaPaths',
       'dnaEntryTypes',
@@ -659,12 +712,21 @@ export default {
       'currentFiles',
       'sharedFiles'
     ]),
-    ...mapState('appStore', ['applicationItems', 'moduleItems']),
+    ...mapState('appStore', ['applicationItems', 'moduleItems', 'cliPluginAppItems', 'cliPluginModuleItems']),
     ...mapState('builderOrganisations', ['organisation']),
     items () {
-      if (this.newApplication) return this.applicationItems
-      if (!this.newApplication) return this.moduleItems
-      return []
+      switch (this.filter.text) {
+        case 'Application':
+          return this.applicationItems
+        case 'Module':
+          return this.moduleItems
+        case 'Vue Cli Plugin (Application)':
+          return this.cliPluginAppItems
+        case 'Vue Cli Plugin (Module)':
+          return this.cliPluginModuleItems
+        default:
+          return []
+      }
     }
   },
   methods: {
@@ -675,6 +737,7 @@ export default {
       'createDirectory',
       'createFile',
       'getStatus',
+      'clearCommits',
       'lintFiles',
       'reinstallNodeModules',
       'startWebServer',
@@ -692,20 +755,18 @@ export default {
       'renameEntryType',
       'duplicateEntryType',
       'getMergeTargetChanges',
-      'getCurrentChanges'
+      'getCurrentChanges',
+      'createAppPluginFromTemplate',
+      'createModulePluginFromTemplate',
+      'publishPlugin'
     ]),
     ...mapMutations('builder', ['setApplicationName', 'socketFinished']),
     setCodeWindowHeight () {
       this.cwHeight = this.$el.clientHeight - 44
     },
-    openShop (isNewApplication) {
+    openShop (filter) {
+      this.filter = { ...filter }
       this.myappDrawerOpen = true
-      this.newApplication = isNewApplication
-      if (isNewApplication) {
-        this.initialCategory = 49
-      } else {
-        this.initialCategory = 5
-      }
       this.shop = true
     },
     showProduct (product) {
@@ -716,11 +777,26 @@ export default {
       this.stdMessagesDialog = true
       this.myappDrawerOpen = false
       this.terminalTab = 0
-      if (this.newApplication) {
-        this.createApplication({ name: this.name, preset: this.selectedProduct.preset })
-      } else {
-        this.addModule({ name: this.applicationName, plugin: this.selectedProduct.plugin })
+      switch (this.filter.text) {
+        case 'Application':
+          this.createApplication({ name: this.name, preset: this.selectedProduct.preset })
+          break
+        case 'Module':
+          this.addModule({ name: this.applicationName, plugin: this.selectedProduct.plugin })
+          break
       }
+    },
+    appPluginTemplate (product) {
+      this.stdMessagesDialog = true
+      this.myappDrawerOpen = false
+      this.terminalTab = 0
+      this.createAppPluginFromTemplate({ name: this.applicationName, product })
+    },
+    modulePluginTemplate (product) {
+      this.stdMessagesDialog = true
+      this.myappDrawerOpen = false
+      this.terminalTab = 0
+      this.createModulePluginFromTemplate({ name: this.applicationName, product })
     },
     dirSelected (directory) {
       this.fileSelected(directory)
@@ -759,7 +835,10 @@ export default {
   },
   mounted () {
     this.$store.dispatch('appStore/initialise')
-    this.$store.dispatch('builderOrganisations/initialise').then(() => this.$store.dispatch('builder/getApplications'))
+    this.$store.dispatch('builderOrganisations/initialise').then(() => {
+      this.$store.dispatch('builder/getApplications')
+      this.$store.dispatch('builder/getPlugins')
+    })
     this.$store.dispatch('builder/initialise')
       .then(() => {
         this.$store.dispatch('builder/getDnaPaths')
