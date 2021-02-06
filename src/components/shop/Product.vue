@@ -22,11 +22,11 @@
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn v-if="product.preset || product.plugin" class="primary white--text" tile @click="$emit('install')">
+            <v-btn v-if="product.preset || product.plugin" class="primary white--text" tile @click="agreeValueFlow = true">
               <v-icon>mdi-application-import</v-icon>
               <span>{{ filter.action }}</span>
             </v-btn>
-            <v-btn v-if="product.template" class="primary white--text" tile @click="$emit(`${filter.event}`, product)">
+            <v-btn v-if="product.template" class="primary white--text" tile @click="agreeValueFlow = true">
               <v-icon>mdi-application-import</v-icon>
               <span>{{ filter.action }}</span>
             </v-btn>
@@ -42,7 +42,7 @@
           </v-tab>
           <v-tab>Developer Info</v-tab>
           <v-tab>
-            <span class="body-2">App Ancestry</span>
+            <span class="body-2">Value Flow</span>
           </v-tab>
           <v-tab-item>
             <v-list
@@ -100,15 +100,30 @@
               </v-list-item-group>
             </v-list>
           </v-tab-item>
+          <v-tab-item>
+            <v-card flat color="white">
+              <v-img :src="require('@/assets/img/shop/sens-flow-1.png')" :height="400" contain/>
+            </v-card>
+          </v-tab-item>
         </v-tabs>
       </v-col>
     </v-row>
+     <confirm-action-dialog
+      :isOpen="agreeValueFlow"
+      message="agree to this valueflow?"
+      @confirm="confirmAgreement"
+      @cancel="cancelAgreement"
+    />
   </v-container>
 </template>
 <script>
 export default {
   props: ['product', 'filter'],
+  components: {
+    ConfirmActionDialog: () => import('@/components/ConfirmActionDialog.vue')
+  },
   data: () => ({
+    agreeValueFlow: false,
     rating: 4.5,
     item: 5,
     items: [
@@ -139,6 +154,16 @@ export default {
         subtitle: "<span class='text--primary'>Britta Holt</span> &mdash; Lorem ipsum dolor sit amet, consectetur adipiscing elit"
       }
     ]
-  })
+  }),
+  methods: {
+    confirmAgreement () {
+      console.log(this.filter, this.product)
+      this.$emit(this.filter.event, this.product)
+      this.agreeValueFlow = false
+    },
+    cancelAgreement () {
+      this.agreeValueFlow = false
+    }
+  }
 }
 </script>

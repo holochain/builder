@@ -30,6 +30,7 @@
             @click="openShop({
               text: 'Application',
               action: 'Create New Application from this Preset',
+              event: 'install',
               categoryId: 49
             })"
             key="newProject"
@@ -108,6 +109,7 @@
             @click="openShop({
               text: 'Module',
               action: `Add Module`,
+              event: 'install',
               categoryId: 5
             })">
             <v-list-item-title>Add Module</v-list-item-title>

@@ -23,8 +23,8 @@ export default {
         id: 1,
         name: 'Social Apps',
         children: [
+          { id: 6, name: 'Profile' },
           { id: 5, name: 'Messaging' },
-          { id: 6, name: 'Reputation' },
           { id: 7, name: 'Events' }
         ]
       },
@@ -130,20 +130,22 @@ export default {
         developer: 'Holochain'
       },
       {
-        category: 97,
+        category: 6,
         uuid: '03231872-7341-4c78-92b8-38e7bbc58ec0',
         name: 'Professional',
-        type: 'application',
-        preview: require('../../assets/img/shop/profile-site3.png'),
-        description: 'Use this as your starting point for building a modern, super fast & great looking profile site. Especially targeted at consultants and freelancers. You coud add modules such as "Ledger" or the kanban app and build a business as well.',
+        type: 'module',
+        preview: require('../../assets/img/shop/profile-site1.png'),
+        description: 'Your profile information as a modern, super fast & great looking profile site. Especially targeted at consultants and freelancers. You coud add modules such as "Ledger" or the kanban app and build a business as well.',
         developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
-          require('@/assets/img/shop/profile-site2.png'),
           require('@/assets/img/shop/profile-site1.png'),
+          require('@/assets/img/shop/profile-site2.png'),
           require('@/assets/img/shop/profile-site3.png'),
-          require('@/assets/img/shop/profile-site4.png')
+          require('@/assets/img/shop/profile-site4.png'),
+          require('@/assets/img/shop/profile-site5.png')
         ],
-        developer: 'Holochain'
+        developer: 'Holochain',
+        plugin: 'vue-cli-plugin-holochain-module-professional-profile'
       },
       {
         category: 97,
