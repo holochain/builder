@@ -6,8 +6,8 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "builder": "vue-cli-service serve --port 5200",
-    "start": "nf start",
-    "postinstall": "cd socket && yarn install"
+    "postinstall": "cd socket && yarn install",
+    "start": "nf start"
   },
   "main": "background.js",
   "dependencies": {
@@ -19,10 +19,12 @@
     "dexie-export-import": "^1.0.0",
     "diff-match-patch": "^1.0.5",
     "vue": "^2.6.11",
+    "vue-cli-plugin-holochain-module-kanban": "^0.0.2",
     "vue-codemirror": "^4.0.6",
     "vue-router": "^3.2.0",
     "vue-socket.io": "^3.0.10",
     "vue-split-panel": "^1.0.4",
+    "vuedraggable": "^2.24.3",
     "vuetify": "^2.2.11",
     "vuetify-image-input": "^19.2.0",
     "vuex": "^3.4.0"

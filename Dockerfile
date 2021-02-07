@@ -45,3 +45,7 @@ CMD socat tcp-l:26971,fork,reuseaddr tcp:127.0.0.1:26970 & socat tcp-l:11380,for
 
 # docker run -it --init -p 5200:5200 -p 44444:44444 -p 45678:45678 -p 26970:26972 holochain:builder
 # docker run -it --init -v /Users/philipbeadle/holochain/builder-organisations:/home/docker/builder-organisations -v /Users/philipbeadle/holochain/builder:/home/docker/builder -p 26971:26971 -p 5200:5200 -p 11380:11380 -p 45678:45678 -p 44001:44001 -p 44002:44002 -p 44003:44003 -p 44004:44004 holochain:builder
+# docker run -t -i --privileged holochain:builder bash
+# docker stop $(docker ps -a -q)   
+# docker rm $(docker ps -a -q) 
+# docker rmi $(docker images -a -q)

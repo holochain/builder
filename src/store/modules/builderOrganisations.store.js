@@ -36,7 +36,6 @@ export default {
     },
     saveOrganisation ({ state, commit }, payload) {
       const organisation = payload
-      console.log('🚀 ~ file: builderOrganisations.store.js ~ line 35 ~ saveOrganisation ~ organisation', organisation)
       commit('setOrganisation', organisation)
       state.db.organisations.put(organisation)
       state.db.currentOrganisation.clear()

@@ -12,6 +12,7 @@
       <v-btn icon @click="newOrganisation">
         <v-icon>mdi-briefcase-plus-outline</v-icon>
       </v-btn>
+      <agent />
     </v-app-bar>
     <v-container fluid>
       <v-row dense>
@@ -39,6 +40,9 @@
               <v-btn icon :to="`/builder/developer/${organisation.uuid}`">
                 <v-icon>mdi-code-braces</v-icon>
               </v-btn>
+              <v-btn icon to="/builder/kanban">
+                <v-icon>mdi-view-column-outline</v-icon>
+              </v-btn>
               <v-btn icon @click="openOrganisationDetails(organisation)">
                 <v-icon>mdi-briefcase-edit-outline</v-icon>
               </v-btn>
@@ -62,100 +66,22 @@
           <v-icon @click="orgDrawerOpen = false">mdi-close</v-icon>
         </v-system-bar>
         <v-card-text>
-          <v-container>
-            <v-row no-gutters>
-              <v-col cols="6" class="pa-0">
-                <v-col cols="12" class="pa-0">
-                  <v-text-field
-                    v-model="orgProfile.name"
-                    label="Organisation's Name"
-                    required
-                  ></v-text-field>
-                </v-col>
-                <v-col cols="12" class="pa-0">
-                  <v-text-field
-                    v-model="orgProfile.email"
-                    label="Organisation's Email"
-                    required
-                  ></v-text-field>
-                </v-col>
-              </v-col>
-              <v-col cols="6">
-              </v-col>
-              <v-col
-                cols="12"
-              >
-                <v-textarea
-                  v-model="orgProfile.billingAddress"
-                  label="Billing Entity Address*"
-                  hint="What's your address"
-                  rows="3"
-                  persistent-hint
-                  required
-                ></v-textarea>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="orgProfile.financialInstitution"
-                  label="Financial Institution"
-                  hint="eg: Transferwise"
-                  persistent-hint
-                  required
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="orgProfile.bsb"
-                  label="BSB*"
-                  required
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="orgProfile.account"
-                  label="Account Number*"
-                  required
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="orgProfile.billingContact"
-                  label="Account Holder*"
-                  hint="eg: Your name"
-                  persistent-hint
-                  required
-                ></v-text-field>
-              </v-col>
-            </v-row>
-          </v-container>
+          <organisation-edit
+            :key="orgProfile.uuid"
+            :orgProfile="orgProfile"
+            @close="orgDrawerOpen = false"/>
         </v-card-text>
-        <v-card-actions class="pa-0 mt-0">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="blue darken-1"
-            text
-            @click="orgDrawerOpen = false"
-          >
-            Close
-          </v-btn>
-          <v-btn
-            color="blue darken-1"
-            text
-            @click="saveOrganisation(orgProfile); orgDrawerOpen = false"
-          >
-            Save
-          </v-btn>
-        </v-card-actions>
       </v-card>
     </v-navigation-drawer>
   </v-card>
 </template>
 <script>
-import { mapActions, mapState } from 'vuex'
+import { mapState } from 'vuex'
 import { v4 as uuidv4 } from 'uuid'
 export default {
   name: 'Organisations',
   components: {
+    Agent: () => import('@/components/Agent.vue')
   },
   data: () => ({
     orgDrawerOpen: false,
@@ -172,7 +98,6 @@ export default {
     }
   }),
   methods: {
-    ...mapActions('builderOrganisations', ['initialise', 'saveOrganisation']),
     openOrganisationDetails (org) {
       this.orgProfile = { ...org }
       this.orgDrawerOpen = true
@@ -182,6 +107,7 @@ export default {
         uuid: uuidv4(),
         path: 'Organisations',
         name: '',
+        logo: '',
         email: '',
         billingContact: '',
         billingAddress: '',
@@ -202,7 +128,8 @@ export default {
   },
   created () {
     this.orgProfile = { ...this.organisation }
-    this.initialise()
+    this.$store.dispatch('builderOrganisations/initialise')
+    this.$store.dispatch('kanban/initialise')
   }
 }
 </script>

@@ -5,6 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "@holochain/conductor-api": "^0.0.1-dev.16",
+    "dotenv": "^8.2.0",
     "nodemon": "^2.0.6",
     "npm-cli-login": "^0.1.1",
     "socket.io": "^2.3.0"

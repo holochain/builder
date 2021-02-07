@@ -30,11 +30,7 @@ export default {
       },
       {
         id: 2,
-        name: 'Project Management',
-        children: [
-          { id: 9, name: 'Kanban' },
-          { id: 4, name: 'Invoicing' }
-        ]
+        name: 'Project Management'
       },
       {
         id: 12,
@@ -65,7 +61,40 @@ export default {
           require('@/assets/img/shop/Simple2.png')
         ],
         developer: 'Holochain',
-        preset: 'holochain/vue-cli-preset-holochain-app-simple'
+        preset: {
+          useConfigFiles: true,
+          plugins: {
+            '@vue/cli-plugin-babel': {},
+            '@vue/cli-plugin-pwa': {},
+            '@vue/cli-plugin-router': {
+              historyMode: true
+            },
+            '@vue/cli-plugin-vuex': {},
+            '@vue/cli-plugin-eslint': {
+              config: 'standard',
+              lintOn: [
+                'save',
+                'commit'
+              ]
+            },
+            '@vue/cli-plugin-unit-mocha': {},
+            '@vue/cli-plugin-e2e-cypress': {},
+            'vue-cli-plugin-vuetify': {
+              preset: 'configure',
+              replaceComponents: true,
+              iconFont: 'mdi',
+              installFonts: true,
+              locale: 'en',
+              useAlaCarte: false,
+              useCustomProperties: false,
+              usePolyfill: false,
+              useTheme: true
+            },
+            'vue-cli-plugin-holochain-app-simple': {}
+          },
+          vueVersion: '2',
+          cssPreprocessor: 'dart-sass'
+        }
       },
       {
         category: 49,
@@ -115,19 +144,20 @@ export default {
         }
       },
       {
-        category: 101,
+        category: 2,
         uuid: 'd28d96a7-8e0d-4fac-8c02-626366b2f7ad',
         name: 'Kanban',
         type: 'application',
         preview: require('../../assets/img/shop/recursive4.png'),
-        description: 'This Vuetify web app, Columns & Cards, is setup to show you how easy it is to build a Holochain application. Columns & Cards is a starting point for, as you guessed, recursivecards apps that don\'t require a complicated navigation system or other fancy layouts. Columns & Cards shows you how to use Vue Router, Vuex and Holochain. It also shows you how to secure your routes and check to make sure the person using Columns & Cards has a Holochain Public Agent Key or has logged in to Holo. Columns & Cards also uses dexie.js to store information in the browser database, IndexDB. This speeds up your even more enabling you to retrieve data immediately from IndexDB and then let the data be updated by Holochain. This is known as the stale-while-revalidate (SWR) pattern. If your app needs more complicated layouts try the Holochain Kitchen Sink option.',
+        description: 'Kanban is a Japanese manufacturing system in which the supply of components is regulated through the use of an instruction card sent along the production line. This kanban module is recursive meaning you can add columns to columns allowing you to keep all your projects in one place.',
         developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
         screens: [
           require('@/assets/img/shop/recursive1.png'),
           require('@/assets/img/shop/recursive2.png'),
           require('@/assets/img/shop/recursive3.png')
         ],
-        developer: 'Holochain'
+        developer: 'Holochain',
+        plugin: 'vue-cli-plugin-holochain-module-kanban'
       },
       {
         category: 6,
@@ -207,7 +237,7 @@ export default {
         developer: 'Holochain'
       },
       {
-        category: 4,
+        category: 2,
         uuid: '1969c523-1fb0-476f-85b4-62ef0cab0819',
         name: 'Ledger',
         type: 'module',

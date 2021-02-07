@@ -38,6 +38,7 @@
             <v-list-item-title>New Application From Preset</v-list-item-title>
           </v-list-item>
           <v-list-item
+            v-if="applicationName"
             @click="openShop({
               text: 'Vue Cli Plugin (Application)',
               action: `Create New vue-cli-plugin-${organisation.name}-app-${applicationName}`,
@@ -49,6 +50,7 @@
             <v-list-item-title v-if="organisation">New vue-cli-plugin-{{ organisation.name }}-app-{{ applicationName }}</v-list-item-title>
           </v-list-item>
           <v-list-item
+            v-if="applicationName"
             @click="openShop({
               text: 'Vue Cli Plugin (Module)',
               action: `Create New vue-cli-plugin-${organisation.name}-module-${applicationName}`,
@@ -60,25 +62,44 @@
             <v-list-item-title>New vue-cli-plugin-{{ organisation.name }}-module-{{ applicationName }}</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
-          <v-list-item v-for="application in applications"
-            @click="stdMessagesDialog = true;
-              resetConductor();
-              clearCommits().then(() => getStatus({ name: application.name }));
-              terminalTab = 0;"
-            :key="`${application.name}application`"
+          <v-list-group
+            no-action
+            @click.stop
           >
-            <v-list-item-title>Open '{{ application.name }}' Application</v-list-item-title>
-          </v-list-item>
+            <template v-slot:activator>
+              <v-list-item-title>Open Application</v-list-item-title>
+            </template>
+            <v-list-item v-for="application in applications"
+              @click="stdMessagesDialog = true;
+                resetConductor();
+                clearCommits().then(() => getStatus({ name: application.name }));
+                terminalTab = 0;
+                reinstallNodeModules({ name: applicationName });"
+              :key="`${application.name}application`"
+              class="pl-10"
+            >
+              <v-list-item-title>{{ application.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list-group>
           <v-divider></v-divider>
-          <v-list-item v-for="plugin in plugins"
-            @click="stdMessagesDialog = true;
-              resetConductor();
-              clearCommits().then(() => getStatus({ name: plugin.name }));
-              terminalTab = 0;"
-            :key="`${plugin.name}plugin`"
+          <v-list-group
+            no-action
+            @click.stop
           >
-            <v-list-item-title>Open '{{ plugin.name.replace('vue-cli-plugin-', '') }}' Cli Plugin</v-list-item-title>
-          </v-list-item>
+            <template v-slot:activator>
+              <v-list-item-title>Open Plugin</v-list-item-title>
+            </template>
+            <v-list-item v-for="plugin in plugins"
+              @click="stdMessagesDialog = true;
+                resetConductor();
+                clearCommits().then(() => getStatus({ name: plugin.name }));
+                terminalTab = 0;"
+              :key="`${plugin.name}plugin`"
+              class="pl-10"
+            >
+              <v-list-item-title>{{ plugin.name.replace('vue-cli-plugin-', '') }}</v-list-item-title>
+            </v-list-item>
+          </v-list-group>
           <v-divider></v-divider>
           <v-list-item>
             <v-list-item-title class="grey--text">Package for Holo</v-list-item-title>
@@ -88,7 +109,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-menu offset-y dark>
+      <v-menu offset-y dark v-if="applicationName">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
             color="action darken-1"
@@ -160,7 +181,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-menu offset-y dark>
+      <v-menu offset-y dark v-if="applicationName">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
             color="action darken-1"
@@ -189,7 +210,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-menu offset-y dark>
+      <v-menu offset-y dark v-if="applicationName">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
             color="action darken-1"
@@ -268,7 +289,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-menu offset-y dark dense>
+      <v-menu offset-y dark dense v-if="applicationName">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
             color="action darken-1"
@@ -375,7 +396,7 @@
                     <messages :messages="stdOutMessages" />
                   </v-tab-item>
                   <v-tab>
-                    App Server
+                    Web Server
                     <v-icon v-if="!appServerRunning" right small @click="startWebServer({ name: applicationName })">
                       mdi-play-circle-outline
                     </v-icon>

@@ -1,6 +1,7 @@
+require('dotenv').config()
 const server = require('http').createServer()
 const options = {}
-const builderOrg = process.argv[2]
+const builderOrg = process.env.ORGANISATION
 const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
 const devPresetsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/presets`
 const devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
