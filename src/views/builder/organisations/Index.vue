@@ -129,7 +129,7 @@ export default {
   created () {
     this.orgProfile = { ...this.organisation }
     this.$store.dispatch('builderOrganisations/initialise')
-    this.$store.dispatch('kanban/initialise')
+    this.$store.dispatch('builderKanban/initialise')
   }
 }
 </script>

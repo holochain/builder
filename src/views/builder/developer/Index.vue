@@ -304,7 +304,11 @@
           </v-btn>
         </template>
         <v-list dense>
-           <v-list-item
+           <v-list-item to="/builder/kanban">
+            <v-list-item-title>Kanban</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item
             key="refreshFiles"
             @click="
               stdMessagesDialog = true;
@@ -661,15 +665,15 @@ export default {
   name: 'Builder',
   components: {
     Agent: () => import('@/components/Agent.vue'),
-    FileTree: () => import('@/components/FileTree.vue'),
-    FileSharing: () => import('@/components/FileSharing.vue'),
-    Editor: () => import('@/components/Editor.vue'),
+    FileTree: () => import('@/components/builder/developer/FileTree.vue'),
+    FileSharing: () => import('@/components/builder/developer/FileSharing.vue'),
+    Editor: () => import('@/components/builder/developer/Editor.vue'),
     Messages: () => import('@/components/Messages.vue'),
-    DnaTemplate: () => import('@/components/DnaTemplate.vue'),
-    WebPartTemplate: () => import('@/components/WebPartTemplate.vue'),
-    TestAgents: () => import('@/components/TestAgents.vue'),
-    Shop: () => import('@/components/shop/Shop.vue'),
-    Product: () => import('@/components/shop/Product.vue')
+    DnaTemplate: () => import('@/components/builder/developer/DnaTemplate.vue'),
+    WebPartTemplate: () => import('@/components/builder/developer/WebPartTemplate.vue'),
+    TestAgents: () => import('@/components/builder/developer/TestAgents.vue'),
+    Shop: () => import('@/components/builder/shop/Shop.vue'),
+    Product: () => import('@/components/builder/shop/Product.vue')
   },
   data () {
     return {
@@ -715,7 +719,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('builder', [
+    ...mapState('builderDeveloper', [
       'conductor',
       'applications',
       'plugins',
@@ -735,7 +739,7 @@ export default {
       'currentFiles',
       'sharedFiles'
     ]),
-    ...mapState('appStore', ['applicationItems', 'moduleItems', 'cliPluginAppItems', 'cliPluginModuleItems']),
+    ...mapState('builderShop', ['applicationItems', 'moduleItems', 'cliPluginAppItems', 'cliPluginModuleItems']),
     ...mapState('builderOrganisations', ['organisation']),
     items () {
       switch (this.filter.text) {
@@ -753,7 +757,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions('builder', [
+    ...mapActions('builderDeveloper', [
       'createApplication',
       'addModule',
       'openApplication',
@@ -783,7 +787,7 @@ export default {
       'createModulePluginFromTemplate',
       'publishPlugin'
     ]),
-    ...mapMutations('builder', ['setApplicationName', 'socketFinished']),
+    ...mapMutations('builderDeveloper', ['setApplicationName', 'socketFinished']),
     setCodeWindowHeight () {
       this.cwHeight = this.$el.clientHeight - 44
     },
@@ -837,7 +841,7 @@ export default {
     resetConductor () {
       this.stdMessagesDialog = true
       this.terminalTab = 3
-      this.$store.dispatch('builder/resetConductor')
+      this.$store.dispatch('builderDeveloper/resetConductor')
     },
     scrollToEnd () {
       var container = this.$el.querySelector('#container')
@@ -857,15 +861,15 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch('appStore/initialise')
+    this.$store.dispatch('builderShop/initialise')
     this.$store.dispatch('builderOrganisations/initialise').then(() => {
-      this.$store.dispatch('builder/getApplications')
-      this.$store.dispatch('builder/getPlugins')
+      this.$store.dispatch('builderDeveloper/getApplications')
+      this.$store.dispatch('builderDeveloper/getPlugins')
     })
-    this.$store.dispatch('builder/initialise')
+    this.$store.dispatch('builderDeveloper/initialise')
       .then(() => {
-        this.$store.dispatch('builder/getDnaPaths')
-        this.$store.dispatch('builder/getDnaEntryTypes')
+        this.$store.dispatch('builderDeveloper/getDnaPaths')
+        this.$store.dispatch('builderDeveloper/getDnaEntryTypes')
       })
     this.setCodeWindowHeight()
   }

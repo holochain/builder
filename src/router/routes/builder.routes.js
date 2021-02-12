@@ -10,6 +10,30 @@ const routes = [
         component: () => import('@/views/builder/developer/Index.vue')
       }
     ]
+  },
+  {
+    path: '/builder',
+    name: '',
+    component: () => import('@/layouts/basic/Index.vue'),
+    children: [
+      {
+        path: 'kanban',
+        name: 'Kanban',
+        component: () => import('@/views/builder/kanban/cards/Index.vue')
+      }
+    ]
+  },
+  {
+    path: '/builder',
+    name: '',
+    component: () => import('@/layouts/basic/Index.vue'),
+    children: [
+      {
+        path: 'organisations',
+        name: 'Organisations',
+        component: () => import('@/views/builder/organisations/Index.vue')
+      }
+    ]
   }
 ]
 

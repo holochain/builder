@@ -20,17 +20,6 @@
               <v-card-title>Philip Beadle</v-card-title>
             </v-list-item-content>
           </v-list-item>
-          <v-divider></v-divider>
-          <v-list-item v-if="agent.agentPubKey === ''" @click="generateAgentKey({ agent })">
-            <v-list-item-icon>
-              <v-icon>
-                mdi-account-key-outline
-              </v-icon>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title>My Public Key</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
           <v-list-item href="http://localhost:50001/personas">
             <v-list-item-icon>
               <v-icon>mdi-account</v-icon>
@@ -65,19 +54,12 @@
 </template>
 
 <script>
-import { mapActions, mapState } from 'vuex'
 export default {
   name: 'Holo',
   data () {
     return {
       holo: true
     }
-  },
-  computed: {
-    ...mapState('conductorAdmin', ['agent'])
-  },
-  methods: {
-    ...mapActions('conductorAdmin', ['generateAgentKey'])
   },
   created () {
     if (this.$route.query.agentPubKey) localStorage.setItem('agentPubKey', decodeURIComponent(this.$route.query.agentPubKey))

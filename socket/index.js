@@ -100,7 +100,7 @@ io.on('connection', socket => {
   })
 
   socket.on('SAVE_FILE', payload => {
-    console.log(payload)
+    rootDir = devAppsDir
     if (payload.parentDir.includes('vue-cli-plugin')) rootDir = devPluginsDir
     fs.writeFile(
       `${rootDir}${payload.parentDir}${payload.name}`,
@@ -139,7 +139,7 @@ io.on('connection', socket => {
 
   socket.on('CREATE_DIRECTORY', (payload, callback) => {
     console.log('CREATE_DIRECTORY', payload)
-    fs.mkdir(`${rootDir}/dev-apps/${payload.path}`, { recursive: true },
+    fs.mkdir(`${rootDir}/${payload.path}`, { recursive: true },
       (err) => {
         if (err) throw err
         callback(err, `Added ${payload}`)
@@ -340,9 +340,7 @@ io.on('connection', socket => {
   })
 
   socket.on('GET_APPLICATIONS', (_, callback) => {
-    console.log('GET_APPLICATIONS')
-    console.log(rootDir)
-    const entries = fs.readdirSync(`${rootDir}/`, { withFileTypes: true }).filter(entry => entry.isDirectory())
+    const entries = fs.readdirSync(`${devAppsDir}/`, { withFileTypes: true }).filter(entry => entry.isDirectory())
     callback(entries)
   })
 
