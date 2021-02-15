@@ -1,11 +1,8 @@
 <template>
   <v-card height="100%" width="100%">
     <v-app-bar app dark dense tile class="pa-0">
-      <v-avatar size="30" class="mt-n1 mr-2">
-        <v-img contain :src="require('@/assets/holochain-halo.png')">
-        </v-img>
-      </v-avatar>
-      <v-toolbar-title class="mt-n1 mr-1 font-weight-black">
+      <builder-menu />
+      <v-toolbar-title class="ml-2 mt-n1 mr-1 font-weight-black">
         Builder Organisations
       </v-toolbar-title>
       <v-spacer></v-spacer>
@@ -37,10 +34,10 @@
 
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn icon :to="`/builder/developer/${organisation.uuid}`">
+              <v-btn icon @click="goToDeveloper(organisation)">
                 <v-icon>mdi-code-braces</v-icon>
               </v-btn>
-              <v-btn icon to="/builder/kanban">
+              <v-btn icon @click="goToKanban(organisation)">
                 <v-icon>mdi-view-column-outline</v-icon>
               </v-btn>
               <v-btn icon @click="openOrganisationDetails(organisation)">
@@ -81,7 +78,8 @@ import { v4 as uuidv4 } from 'uuid'
 export default {
   name: 'Organisations',
   components: {
-    Agent: () => import('@/components/Agent.vue')
+    Agent: () => import('@/components/Agent.vue'),
+    BuilderMenu: () => import('@/layouts/builder/BuilderMenu.vue')
   },
   data: () => ({
     orgDrawerOpen: false,
@@ -116,6 +114,14 @@ export default {
         account: ''
       }
       this.orgDrawerOpen = true
+    },
+    goToDeveloper (organisation) {
+      localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+      this.$router.push('/builder/developer')
+    },
+    goToKanban (organisation) {
+      localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+      this.$router.push('/builder/kanban')
     }
   },
   computed: {

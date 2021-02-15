@@ -9,14 +9,14 @@
         >
           <split-area :size="22">
             <v-toolbar dense dark>
-              <v-avatar size="30" class="mt-n1 mr-2">
-                <v-img contain :src="require('@/assets/holochain-halo.png')">
-                </v-img>
-              </v-avatar>
-              <v-toolbar-title class="mt-n1 mr-1 font-weight-black">Project Explorer</v-toolbar-title>
+              <builder-menu />
+              <v-toolbar-title class="ml-2 mt-n1 mr-1 font-weight-black">Project Explorer</v-toolbar-title>
               <v-spacer></v-spacer>
-              <v-icon @click="$store.dispatch('builderKanban/fetchCards')" color="primary" dark class="pr-1">
+              <v-icon v-if="!migrate" @click="$store.dispatch('builderKanban/fetchCards')" color="primary" dark class="pr-1">
                 mdi-refresh
+              </v-icon>
+              <v-icon v-if="migrate" @click="$store.dispatch('builderKanban/migrateIndexDbToHolochain')" color="primary" dark class="pr-1">
+                mdi-cog-transfer-outline
               </v-icon>
               <v-icon @click="addColumn" color="primary" dark>
                 mdi-table-column-plus-after
@@ -136,46 +136,61 @@
       dark
       class="overflow-visible pa-0"
       right
-      :width="this.$vuetify.breakpoint.lgAndUp ? 500 : 400"
+      :width="this.$vuetify.breakpoint.lgAndUp ? 700 : 500"
     >
       <v-card>
         <v-system-bar window dark>
-          <v-icon>mdi-message</v-icon>
-          <span>10 unread messages</span>
+          <v-icon>mdi-card-text-outline</v-icon>
+          <span class="pl-1 pr-2">Column ({{ parentColumnName }})</span>
+          <v-btn
+            icon
+            v-for="emoji in editingCard.reactions"
+            :key="emoji"
+            @click="removeReaction(emoji)">
+            <v-icon>{{ emoji }}</v-icon>
+          </v-btn>
           <v-spacer></v-spacer>
-          <v-icon @click="cardDrawerOpen = false">mdi-close</v-icon>
+          <v-btn
+            icon
+            small
+            @click="openEmojiPicker()">
+            <v-icon>mdi-emoticon-outline</v-icon>
+          </v-btn>
+          <v-btn
+            icon
+            small
+            @click="cardDrawerOpen = false">
+            <v-icon>mdi-close-box-outline</v-icon>
+          </v-btn>
         </v-system-bar>
-        <v-card-title>
-          <span class="headline">Card Details</span>
-          <v-spacer></v-spacer>
-          Column --> {{ parentColumnName }}
-        </v-card-title>
-        <v-row no-gutters>
-          <v-col cols="12" class="pr-2 pl-2">
-            <v-text-field
-              v-model="editingCard.name"
-              label="Name"
-              dark
-              dense
-              autofocus
-              @keydown.enter="saveCd"
-            ></v-text-field>
-          </v-col>
-          <v-col cols="12" class="pr-2 pl-2">
-            <span>Image</span>
-              <v-image-input
-                v-model="editingCard.preview"
-                :image-quality="1"
-                clearable
-                image-format="jpeg,png"
-                :image-width="100"
-                :image-height="100"
+        <v-card-text>
+          <v-row no-gutters>
+            <v-col cols="12" class="pr-2 pl-2">
+              <v-text-field
+                v-model="editingCard.name"
+                label="Name"
                 dark
-                image-min-scaling="contain"
-                class="ml-15 pl-10 mt-5 mb-n3"
-              />
-          </v-col>
-        </v-row>
+                dense
+                autofocus
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" class="pr-2 pl-2">
+              <v-textarea
+                v-model="editingCard.description"
+                label="Description"
+                rows="5"
+                dark
+                dense />
+            </v-col>
+            <v-col cols="12" class="pr-2 pl-2">
+              <tagger
+                :selectedTags="selectedTags"
+                @tag="tag"
+                class="pa-0" />
+            </v-col>
+          </v-row>
+          <emoji-picker :isOpen="emojiPanel" @add-emoji="addEmoji" />
+        </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn
@@ -213,16 +228,16 @@
 <script>
 import { v4 as uuidv4 } from 'uuid'
 import { mapState, mapActions, mapMutations } from 'vuex'
-import VImageInput from 'vuetify-image-input/a-la-carte'
 export default {
   name: 'Cards',
   components: {
-    VImageInput,
     Agent: () => import('@/components/Agent.vue'),
+    BuilderMenu: () => import('@/layouts/builder/BuilderMenu.vue'),
     Column: () => import('@/components/builder/kanban/Column.vue'),
     CardTree: () => import('@/components/builder/kanban/CardTree.vue'),
-    ConfirmActionDialog: () =>
-      import('@/components/ConfirmActionDialog.vue')
+    ConfirmActionDialog: () => import('@/components/ConfirmActionDialog.vue'),
+    EmojiPicker: () => import('@/components/core/EmojiPicker.vue'),
+    Tagger: () => import('@/components/tags/Tagger.vue')
   },
   data: () => ({
     model: null,
@@ -231,6 +246,7 @@ export default {
     deleteCardDialog: false,
     deleteColumnDialog: false,
     cwHeight: 700,
+    emojiPanel: false,
     selectedTreeItem: {},
     parentColumnName: '',
     editingColumn: {
@@ -246,12 +262,14 @@ export default {
     editingCard: {
       uuid: uuidv4(),
       name: '',
-      preview: '',
+      reactions: [],
+      tags: [],
       parentColumn: '',
       cardType: 'card',
       parent: 'Cards',
       order: 0
     },
+    selectedTags: [],
     action: 'create',
     select: [],
     items: [
@@ -263,7 +281,7 @@ export default {
     ]
   }),
   computed: {
-    ...mapState('builderKanban', ['treeItems', 'selectedColumn', 'cards']),
+    ...mapState('builderKanban', ['treeItems', 'selectedColumn', 'cards', 'migrate']),
     columns () {
       return this.cards
         .filter(card => card.cardType === 'column')
@@ -314,23 +332,29 @@ export default {
       this.action = 'delete'
       this.deleteColumnDialog = true
     },
-    addCard (column) {
+    addCard (column, length) {
       this.parentColumnName = column.name
       this.editingCard = {
         uuid: uuidv4(),
         name: '',
-        preview: '',
+        description: '',
+        reactions: [],
         parentColumn: column.uuid,
         cardType: 'card',
         parent: 'Cards',
-        order: 0
+        order: length
       }
       this.action = 'create'
       this.cardDrawerOpen = true
     },
     editCard (card, column) {
+      console.log(card)
       this.parentColumnName = column.name
       this.editingCard = { ...card }
+      if (card.description === undefined) this.editingCard.description = ''
+      if (card.reactions === undefined) this.editingCard.reactions = []
+      if (card.tags === undefined) this.editingCard.tags = []
+      this.selectedTags = this.editingCard.tags
       this.action = 'update'
       this.cardDrawerOpen = true
     },
@@ -341,6 +365,7 @@ export default {
       this.deleteCardDialog = true
     },
     saveCd () {
+      this.editingCard.tags = this.selectedTags
       this.saveCard({ card: this.editingCard, action: this.action })
       this.cardDrawerOpen = false
     },
@@ -391,6 +416,20 @@ export default {
     },
     cancelDeleteColumn () {
       this.deleteColumnDialog = false
+    },
+    openEmojiPicker () {
+      this.emojiPanel = true
+    },
+    addEmoji (emoji) {
+      this.editingCard.reactions.push(emoji.value)
+      this.emojiPanel = false
+    },
+    removeReaction (emoji) {
+      this.editingCard.reactions = this.editingCard.reactions.filter(r => r !== emoji)
+    },
+    tag (selectedTags) {
+      this.editingCard.tags = selectedTags
+      this.selectedTags = selectedTags
     }
   },
   mounted () {

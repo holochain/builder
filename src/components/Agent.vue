@@ -107,7 +107,7 @@
 <script>
 import { mapActions, mapState } from 'vuex'
 export default {
-  name: 'Holo',
+  name: 'Agent',
   data () {
     return {
       holo: true,

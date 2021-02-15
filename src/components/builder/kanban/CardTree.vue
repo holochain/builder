@@ -164,7 +164,8 @@ export default {
     }
   },
   mounted () {
-    this.getTreeRootColumns().then(() => {
+    const organisation = localStorage.getItem('currentOrganisationUuid')
+    this.getTreeRootColumns(organisation).then(() => {
       if (this.treeItems.length > 0) {
         this.$emit('column-selected', this.treeItems[0])
       }

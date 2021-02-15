@@ -435,7 +435,6 @@ export default {
     getPlugins ({ state, rootState, commit }) {
       const name = rootState.builderOrganisations.name
       state.socket.emit('GET_PLUGINS', { name }, (entries) => {
-        console.log(entries)
         commit('setPlugins', entries)
       })
     },

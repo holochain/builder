@@ -9,7 +9,7 @@
         <v-btn icon small color="primary" @click="$emit('edit-column', column)">
           <v-icon>mdi-folder-edit-outline</v-icon>
         </v-btn>
-        <v-btn icon small color="primary" @click="$emit('add-card', column)">
+        <v-btn icon small color="primary" @click="$emit('add-card', column, colCards.length)">
           <v-icon>mdi-card-plus-outline</v-icon>
         </v-btn>
         <v-btn icon small color="primary" @click="$emit('delete-column', column)">

@@ -1,11 +1,8 @@
 <template>
   <v-card height="100%" width="100%">
     <v-app-bar app dark dense tile class="pa-0">
-      <v-avatar size="30" class="mt-n1 mr-2">
-        <v-img contain :src="require('@/assets/holochain-halo.png')">
-        </v-img>
-      </v-avatar>
-      <v-toolbar-title class="mt-n1 mr-1 font-weight-black">Builder</v-toolbar-title>
+      <builder-menu />
+      <v-toolbar-title class="ml-2 mt-n1 mr-1 font-weight-black">Builder</v-toolbar-title>
       <v-menu offset-y dark dense>
         <template v-slot:activator="{ on, attrs }">
           <v-btn
@@ -337,7 +334,7 @@
         </v-list>
       </v-menu>
       <v-spacer></v-spacer>
-      <v-tooltip bottom>
+      <v-tooltip bottom v-if="organisationApplicationName">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
             color="action darken-1"
@@ -665,6 +662,7 @@ export default {
   name: 'Builder',
   components: {
     Agent: () => import('@/components/Agent.vue'),
+    BuilderMenu: () => import('@/layouts/builder/BuilderMenu.vue'),
     FileTree: () => import('@/components/builder/developer/FileTree.vue'),
     FileSharing: () => import('@/components/builder/developer/FileSharing.vue'),
     Editor: () => import('@/components/builder/developer/Editor.vue'),

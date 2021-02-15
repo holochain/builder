@@ -33,9 +33,7 @@
             </v-card-subtitle>
           </template>
         </v-file-input>
-        <!-- <input type="file" @change="previewImage" accept="image/*"> -->
-        <v-img :src="internalOrgProfileLogo" width="200" class="mx-auto">
-        </v-img>
+        <v-img :src="internalOrgProfileLogo" width="200" class="mx-auto" />
       </v-col>
       <v-col
         cols="12"
@@ -142,6 +140,7 @@ export default {
       }
       this.saveCard({ card })
       this.$emit('close')
+      localStorage.setItem('currentOrganisationUuid', this.internalOrgProfile.uuid)
     }
   },
   watch: {

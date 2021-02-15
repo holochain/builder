@@ -19,6 +19,9 @@ pub struct CardEntry {
     parent: String,
 }
 
+struct Batch(Vec<CardEntry>)
+
+
 #[derive(Debug, Clone, Serialize, Deserialize, SerializedBytes)]
 #[serde(rename_all = "camelCase")]
 pub struct Card {

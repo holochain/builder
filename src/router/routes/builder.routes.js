@@ -2,10 +2,10 @@ const routes = [
   {
     path: '/builder',
     name: '',
-    component: () => import('@/layouts/basic/Index.vue'),
+    component: () => import('@/layouts/builder/Index.vue'),
     children: [
       {
-        path: 'developer/:uuid',
+        path: 'developer',
         name: 'Builder',
         component: () => import('@/views/builder/developer/Index.vue')
       }
@@ -14,7 +14,7 @@ const routes = [
   {
     path: '/builder',
     name: '',
-    component: () => import('@/layouts/basic/Index.vue'),
+    component: () => import('@/layouts/builder/Index.vue'),
     children: [
       {
         path: 'kanban',
@@ -26,7 +26,7 @@ const routes = [
   {
     path: '/builder',
     name: '',
-    component: () => import('@/layouts/basic/Index.vue'),
+    component: () => import('@/layouts/builder/Index.vue'),
     children: [
       {
         path: 'organisations',

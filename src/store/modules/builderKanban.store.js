@@ -34,7 +34,8 @@ export default {
     hcClient: {},
     cards: [],
     treeItems: [],
-    selectedColumn: {}
+    selectedColumn: {},
+    migrate: false
   },
   actions: {
     async initialise ({ state, commit, dispatch }) {
@@ -51,9 +52,9 @@ export default {
       }
       dispatch('fetchCards')
     },
-    async getTreeRootColumns ({ state, commit }) {
+    async getTreeRootColumns ({ state, commit }, payload) {
       return new Promise(resolve => {
-        state.db.cards.where({ parentColumn: 'root' }).toArray(entries => {
+        state.db.cards.where({ parentColumn: payload }).toArray(entries => {
           const treeItems = entries.map(entry => {
             if (entry.cardType === 'column') {
               entry.children = []
@@ -61,6 +62,7 @@ export default {
             return entry
           })
           commit('treeItems', treeItems)
+          state.db.cards.get({ uuid: payload }).then(col => commit('setSelectedColumn', col))
           resolve()
         })
       })
@@ -68,39 +70,40 @@ export default {
     fetchCards ({ rootState, state, commit }) {
       state.db.cards.toArray(cards => {
         commit('setCards', cards)
-        if (state.builderKanbanCellId !== '') {
-          rootState.builderConductorAdmin.hcClient
-            .callZome({
-              cap: null,
-              cell_id: [state.builderKanbanCellId, state.agentPubKey],
-              zome_name: 'kanban',
-              fn_name: 'list_cards',
-              provenance: state.agentPubKey,
-              payload: { parent: 'Cards' }
-            })
-            .then(result => {
-              if (result.cards.length !== 0) {
-                result.cards.forEach(card => {
-                  card.entryHash = base64.bytesToBase64(card.entryHash)
-                  state.db.cards.put(card)
-                })
-                commit('setCards', result.cards)
-              } else if (cards.length > 0) {
-                batchSaveCards(rootState.builderConductorAdmin.hcClient, state.builderKanbanCellId, state.agentPubKey, cards, 0)
-              }
-            })
-        }
+        // if (state.builderKanbanCellId !== '') {
+        //   rootState.builderConductorAdmin.hcClient
+        //     .callZome({
+        //       cap: null,
+        //       cell_id: [state.builderKanbanCellId, state.agentPubKey],
+        //       zome_name: 'kanban',
+        //       fn_name: 'list_cards',
+        //       provenance: state.agentPubKey,
+        //       payload: { parent: 'Cards' }
+        //     })
+        //     .then(result => {
+        //       if (result.cards.length === 0 && cards.length > 0) {
+        //         commit('setMigrate', true)
+        //       } else {
+        //         result.cards.forEach(card => {
+        //           card.entryHash = base64.bytesToBase64(card.entryHash)
+        //           state.db.cards.put(card)
+        //         })
+        //         commit('setCards', result.cards)
+        //       }
+        //     })
+        // }
       })
     },
     saveCard ({ state, commit, dispatch }, payload) {
       const card = payload.card
-      state.db.cards.put(card)
+      console.log('🚀 ~ file: builderKanban.store.js ~ line 99 ~ saveCard ~ card', card)
+      state.db.cards.put(card).catch(err => console.log(err))
       if (payload.action === 'create') {
         commit('createCard', card)
       } else {
         commit('updateCard', card)
       }
-      dispatch('holochainSaveCard', { card })
+      // dispatch('holochainSaveCard', { card })
     },
     holochainSaveCard ({ rootState, state, commit }, payload) {
       const card = payload.card
@@ -146,6 +149,9 @@ export default {
           payload: card
         })
         .then(result => console.log(result))
+    },
+    migrateIndexDbToHolochain ({ rootState, state }) {
+      batchSaveCards(rootState.builderConductorAdmin.hcClient, state.builderKanbanCellId, state.agentPubKey, state.cards, 0)
     }
   },
   mutations: {
@@ -157,6 +163,9 @@ export default {
     },
     hcClient (state, payload) {
       state.hcClient = payload
+    },
+    setMigrate (state, payload) {
+      state.migrate = payload
     },
     treeItems (state, payload) {
       state.treeItems = payload
