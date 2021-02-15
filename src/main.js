@@ -4,7 +4,7 @@ import router from './router'
 import store from './store'
 import vuetify from './plugins/vuetify'
 import './plugins'
-import './components/kanban/cards/index.js'
+import './components/builder/kanban/cards/index.js'
 
 Vue.config.productionTip = false
 

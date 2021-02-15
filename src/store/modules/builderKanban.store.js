@@ -1,15 +1,35 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-// import * as base64 from 'byte-base64'
+import * as base64 from 'byte-base64'
 import Dexie from 'dexie'
 
 Vue.use(Vuex)
 
+function batchSaveCards (hcClient, builderKanbanCellId, agentPubKey, cards, cardIndex) {
+  hcClient.callZome({
+    cap: null,
+    cell_id: [builderKanbanCellId, agentPubKey],
+    zome_name: 'kanban',
+    fn_name: 'create_card',
+    provenance: agentPubKey,
+    payload: cards[cardIndex]
+  })
+    .then(result => {
+      console.log(result)
+      cardIndex++
+      if (cardIndex < cards.length) batchSaveCards(hcClient, builderKanbanCellId, agentPubKey, cards, cardIndex)
+    })
+    .catch(err => {
+      console.log(err)
+      cardIndex++
+      if (cardIndex < cards.length) batchSaveCards(hcClient, builderKanbanCellId, agentPubKey, cards, cardIndex)
+    })
+}
 export default {
   namespaced: true,
   state: {
     agentPubKey: '',
-    kanbanCellId: '',
+    builderKanbanCellId: '',
     db: {},
     hcClient: {},
     cards: [],
@@ -17,18 +37,19 @@ export default {
     selectedColumn: {}
   },
   actions: {
-    async initialise ({ rootState, state, commit, dispatch }) {
-      state.db = new Dexie('kanban')
+    async initialise ({ state, commit, dispatch }) {
+      state.db = new Dexie('builderKanban')
       state.db.version(1).stores({
         cards: 'uuid,[parentColumn+name],parentColumn'
       })
-      state.db.open().catch(function (e) {
-        console.error('Open failed: ' + e)
-      })
-      // commit('hcClient', rootState.conductorAdmin.hcClient)
+      if (localStorage.getItem('agentPubKey')) commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem('agentPubKey'))))
+      if (localStorage.getItem('builderKanbanCellId')) {
+        const builderKanbanCellId = localStorage.getItem('builderKanbanCellId')
+        if (builderKanbanCellId) {
+          commit('builderKanbanCellId', base64.base64ToBytes(decodeURIComponent(builderKanbanCellId)))
+        }
+      }
       dispatch('fetchCards')
-      // commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem('agentPubKey'))))
-      // commit('kanbanCellId', base64.base64ToBytes(decodeURIComponent(localStorage.getItem('kanbanCellId'))))
     },
     async getTreeRootColumns ({ state, commit }) {
       return new Promise(resolve => {
@@ -44,87 +65,95 @@ export default {
         })
       })
     },
-    fetchCards ({ state, commit }) {
+    fetchCards ({ rootState, state, commit }) {
       state.db.cards.toArray(cards => {
-        cards = cards.sort((a, b) => a.order < b.order)
         commit('setCards', cards)
-        // state.hcClient
-        //   .callZome({
-        //     cap: null,
-        //     cell_id: [state.kanbanCellId, state.agentPubKey],
-        //     zome_name: 'kanban',
-        //     fn_name: 'list_cards',
-        //     provenance: state.agentPubKey,
-        //     payload: { parent: 'Cards' }
-        //   })
-        //   .then(result => {
-        //     result.cards.forEach(card => {
-        //       state.db.cards.put(card)
-        //     })
-        //     commit('setCards', result.cards)
-        //   })
+        if (state.builderKanbanCellId !== '') {
+          rootState.builderConductorAdmin.hcClient
+            .callZome({
+              cap: null,
+              cell_id: [state.builderKanbanCellId, state.agentPubKey],
+              zome_name: 'kanban',
+              fn_name: 'list_cards',
+              provenance: state.agentPubKey,
+              payload: { parent: 'Cards' }
+            })
+            .then(result => {
+              if (result.cards.length !== 0) {
+                result.cards.forEach(card => {
+                  card.entryHash = base64.bytesToBase64(card.entryHash)
+                  state.db.cards.put(card)
+                })
+                commit('setCards', result.cards)
+              } else if (cards.length > 0) {
+                batchSaveCards(rootState.builderConductorAdmin.hcClient, state.builderKanbanCellId, state.agentPubKey, cards, 0)
+              }
+            })
+        }
       })
     },
     saveCard ({ state, commit, dispatch }, payload) {
       const card = payload.card
-      console.log('🚀 ~ file: kanban.store.js ~ line 73 ~ saveCard ~ card', card)
       state.db.cards.put(card)
       if (payload.action === 'create') {
         commit('createCard', card)
       } else {
         commit('updateCard', card)
       }
-      // dispatch('holochainSaveCard', { card })
+      dispatch('holochainSaveCard', { card })
     },
-    holochainSaveCard ({ state, commit }, payload) {
+    holochainSaveCard ({ rootState, state, commit }, payload) {
       const card = payload.card
       if (card.entryHash) {
-        state.hcClient
+        card.entryHash = base64.base64ToBytes(card.entryHash)
+        rootState.builderConductorAdmin.hcClient
           .callZome({
             cap: null,
-            cell_id: [state.kanbanCellId, state.agentPubKey],
+            cell_id: [state.builderKanbanCellId, state.agentPubKey],
             zome_name: 'kanban',
             fn_name: 'delete_card',
             provenance: state.agentPubKey,
             payload: card
           })
       }
-      state.hcClient
+      rootState.builderConductorAdmin.hcClient
         .callZome({
           cap: null,
-          cell_id: [state.kanbanCellId, state.agentPubKey],
+          cell_id: [state.builderKanbanCellId, state.agentPubKey],
           zome_name: 'kanban',
           fn_name: 'create_card',
           provenance: state.agentPubKey,
           payload: card
         })
         .then(committedEntry => {
+          committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
           state.db.cards.put(committedEntry)
           commit('updateCard', committedEntry)
         })
     },
-    deleteCard ({ state, commit }, payload) {
+    deleteCard ({ rootState, state, commit }, payload) {
       const card = payload.card
       state.db.cards.delete(card.uuid)
+      card.entryHash = base64.base64ToBytes(card.entryHash)
       commit('deleteCard', card)
-      // state.hcClient
-      //   .callZome({
-      //     cap: null,
-      //     cell_id: [state.kanbanCellId, state.agentPubKey],
-      //     zome_name: 'kanban',
-      //     fn_name: 'delete_card',
-      //     provenance: state.agentPubKey,
-      //     payload: card
-      //   })
-      //   .then(result => console.log(result))
+      rootState.builderConductorAdmin.hcClient
+        .callZome({
+          cap: null,
+          cell_id: [state.builderKanbanCellId, state.agentPubKey],
+          zome_name: 'kanban',
+          fn_name: 'delete_card',
+          provenance: state.agentPubKey,
+          payload: card
+        })
+        .then(result => console.log(result))
     }
   },
   mutations: {
     agentPubKey (state, payload) {
       state.agentPubKey = payload
     },
-    kanbanCellId (state, payload) {
-      state.kanbanCellId = payload
+    builderKanbanCellId (state, payload) {
+      state.builderKanbanCellId = payload
     },
     hcClient (state, payload) {
       state.hcClient = payload

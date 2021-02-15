@@ -9,7 +9,7 @@ passphrase_service: ~
 admin_interfaces:
     - driver:
         type: websocket
-        port: 22776
+        port: 22799
 network:
     transport_pool:
       - type: quic

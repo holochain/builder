@@ -9,7 +9,11 @@
         >
           <split-area :size="22">
             <v-toolbar dense dark>
-              <v-toolbar-title>Project Explorer</v-toolbar-title>
+              <v-avatar size="30" class="mt-n1 mr-2">
+                <v-img contain :src="require('@/assets/holochain-halo.png')">
+                </v-img>
+              </v-avatar>
+              <v-toolbar-title class="mt-n1 mr-1 font-weight-black">Project Explorer</v-toolbar-title>
               <v-spacer></v-spacer>
               <v-icon @click="$store.dispatch('builderKanban/fetchCards')" color="primary" dark class="pr-1">
                 mdi-refresh
@@ -264,7 +268,7 @@ export default {
       return this.cards
         .filter(card => card.cardType === 'column')
         .filter(card => card.parentColumn === this.selectedColumn.uuid)
-        .sort((a, b) => a.order < b.order)
+        .sort((a, b) => a.order - b.order)
     }
   },
   methods: {
@@ -391,7 +395,7 @@ export default {
   },
   mounted () {
     this.setCodeWindowHeight()
-    this.$store.dispatch('builderKanban/initialise')
+    this.$store.dispatch('builderConductorAdmin/initialise').then(() => this.$store.dispatch('builderKanban/initialise'))
   }
 }
 </script>

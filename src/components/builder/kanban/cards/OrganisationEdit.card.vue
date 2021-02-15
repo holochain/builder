@@ -18,6 +18,24 @@
         </v-col>
       </v-col>
       <v-col cols="6">
+        <v-file-input
+          v-model="uploadedFile"
+          accept="image/*"
+          label="Upload new image"
+          outlined
+          dense
+          dark
+          prepend-icon="mdi-file-image-outline"
+        >
+          <template v-slot:selection="{ text }">
+            <v-card-subtitle>
+              {{ text }}
+            </v-card-subtitle>
+          </template>
+        </v-file-input>
+        <!-- <input type="file" @change="previewImage" accept="image/*"> -->
+        <v-img :src="internalOrgProfileLogo" width="200" class="mx-auto">
+        </v-img>
       </v-col>
       <v-col
         cols="12"
@@ -91,10 +109,13 @@ export default {
   props: ['orgProfile'],
   data () {
     return {
+      uploadedFile: [],
+      internalOrgProfileLogo: '',
       internalOrgProfile: {
         uuid: uuidv4(),
         path: 'Organisations',
         name: '',
+        logo: '',
         email: '',
         billingContact: '',
         billingAddress: '',
@@ -108,11 +129,12 @@ export default {
     ...mapActions('builderOrganisations', ['saveOrganisation']),
     ...mapActions('builderKanban', ['saveCard']),
     save () {
+      this.internalOrgProfile.logo = this.internalOrgProfileLogo
       this.saveOrganisation(this.internalOrgProfile)
       const card = {
         uuid: this.internalOrgProfile.uuid,
         name: this.internalOrgProfile.name,
-        preview: '',
+        preview: this.internalOrgProfileLogo,
         parentColumn: 'root',
         cardType: 'column',
         parent: 'Cards',
@@ -122,9 +144,23 @@ export default {
       this.$emit('close')
     }
   },
+  watch: {
+    uploadedFile (fileToUpload) {
+      if (fileToUpload === null) {
+        this.internalOrgProfileLogo = ''
+        return
+      }
+      var reader = new FileReader()
+      reader.onload = (e) => {
+        this.internalOrgProfileLogo = e.target.result
+      }
+      reader.readAsDataURL(fileToUpload)
+    }
+  },
   mounted () {
     if (this.orgProfile) {
       this.internalOrgProfile = { ...this.orgProfile }
+      this.internalOrgProfileLogo = this.internalOrgProfile.logo
     }
   }
 }

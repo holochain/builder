@@ -1,6 +1,7 @@
 require('dotenv').config()
 const server = require('http').createServer()
 const options = {}
+const SERVER_PORT = process.env.SERVER_PORT
 const builderOrg = process.env.ORGANISATION
 const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
 const devPresetsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/presets`
@@ -8,7 +9,6 @@ const devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organis
 let rootDir = devAppsDir
 const io = require('socket.io')(server, options)
 const fs = require('fs')
-const SERVER_PORT = 45678
 const { spawn } = require('child_process')
 const npmLogin = require('npm-cli-login')
 let conductor = undefined

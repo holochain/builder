@@ -14,6 +14,8 @@ const installation: InstallAgentsHapps = [
 ]
 
 const conductorConfig = Config.gen()
+const cardData1 = { parentColumn: '/', name: 'Card 1', preview: '', uuid: uuidv4(), cardType: 'card', order: 0, parent: 'Cards' }
+const cardData2 = { parentColumn: '/', name: 'Card 2', preview: '', uuid: uuidv4(), cardType: 'card', order: 0, parent: 'Cards' }
 
 module.exports = (orchestrator) => {
   orchestrator.registerScenario('Create a card', async (s, t) => {
@@ -44,5 +46,12 @@ module.exports = (orchestrator) => {
     const cardList = await alice_kanban_happ.cells[0].call('kanban', 'list_cards', { parent: 'Cards' });
     console.log('cardList', cardList)
     t.deepEqual(cardList.cards.length, 0)
+  })
+  orchestrator.registerScenario('Batch commit cards', async (s, t) => {
+    const [alice] = await s.players([conductorConfig])
+    const [[alice_kanban_happ]] = await alice.installAgentsHapps(installation)
+    const card = await alice_kanban_happ.cells[0].call('kanban', 'batch_create_cards', { parentColumn: '/', name: 'Card 1', preview: '', uuid: uuidv4(), cardType: 'card', order: 0, parent: 'Cards' })
+    console.log('card', card)
+    t.notEqual(card.entryHash, null)
   })
 }

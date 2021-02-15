@@ -83,7 +83,7 @@ export default {
         return this.cards
           .filter(card => card.cardType === 'card')
           .filter(card => card.parentColumn === this.column.uuid)
-          .sort((a, b) => a.order < b.order)
+          .sort((a, b) => a.order - b.order)
       },
       set (cards) {
         const reorderedCards = cards.map((card, index) => ({
@@ -98,10 +98,11 @@ export default {
     },
     colColumns: {
       get () {
-        return this.cards
+        const colCols = this.cards
           .filter(card => card.cardType === 'column')
           .filter(card => card.parentColumn === this.column.uuid)
-          .sort((a, b) => a.order < b.order)
+          .sort((a, b) => a.order - b.order)
+        return colCols
       },
       set (cols) {
         console.log(cols)

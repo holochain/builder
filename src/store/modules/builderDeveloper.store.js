@@ -98,13 +98,14 @@ export default {
   },
   actions: {
     initialise ({ state, commit, getters, dispatch }) {
-      state.db = new Dexie('builder')
+      state.db = new Dexie('builderDeveloper')
       state.db.version(1).stores({
         agents: 'uuid,name,parent',
         commits: 'uuid,parentBranch,branch,timestamp',
         currentFiles: '[parentDir+name],parentDir,parentBranch,branch',
         committedFiles: '[parentDir+name],parentDir,parentBranch,branch'
       })
+
       state.socket = io(process.env.VUE_APP_SOCKET_URL)
 
       state.db.currentFiles.toArray(currentFiles => {
