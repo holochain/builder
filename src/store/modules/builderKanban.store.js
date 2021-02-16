@@ -6,10 +6,7 @@ import Dexie from 'dexie'
 Vue.use(Vuex)
 
 function batchSaveCards (hcClient, builderKanbanCellId, agentPubKey, cards, cardIndex) {
-  const cardToMigrate = cards[cardIndex]
-  if (cardToMigrate.tags === undefined) cardToMigrate.tags = []
-  if (cardToMigrate.reactions === undefined) cardToMigrate.reactions = []
-  if (cardToMigrate.description === undefined) cardToMigrate.description = ''
+  const cardToMigrate = { ...cards[cardIndex] }
   cardToMigrate.tags = JSON.stringify(cardToMigrate.tags)
   cardToMigrate.reactions = JSON.stringify(cardToMigrate.reactions)
   hcClient.callZome({
@@ -105,7 +102,6 @@ export default {
     },
     saveCard ({ state, commit, dispatch }, payload) {
       const card = payload.card
-      console.log('🚀 ~ file: builderKanban.store.js ~ line 99 ~ saveCard ~ card', card)
       state.db.cards.put(card).catch(err => console.log(err))
       if (payload.action === 'create') {
         commit('createCard', card)

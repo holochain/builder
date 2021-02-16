@@ -1,6 +1,7 @@
 <template>
   <v-container fluid>
     <v-combobox
+      v-if="!migrate"
       v-model="model"
       :filter="filter"
       :hide-no-data="!search"
@@ -60,6 +61,9 @@
         </v-list-item-action>
       </template>
     </v-combobox>
+    <v-icon v-if="migrate" @click="$store.dispatch('tagger/migrateIndexDbToHolochain')" color="primary" dark class="pa-2">
+      mdi-cog-transfer-outline
+    </v-icon>
   </v-container>
 </template>
 
@@ -80,20 +84,17 @@ export default {
     y: 0
   }),
   computed: {
-    ...mapState('tagger', ['tags']),
+    ...mapState('tagger', ['tags', 'migrate']),
     model: {
       get () {
-        console.log(this.selectedTagUuids)
         const selectedTags = []
         this.selectedTagUuids.forEach(selectedTagUuid => {
           const selectedTag = this.tags.find(t => t.uuid === selectedTagUuid.uuid)
-          console.log('🚀  selectedTag', selectedTag)
           if (selectedTag !== undefined) selectedTags.push(selectedTag)
         })
         return selectedTags
       },
       set (selectedTags) {
-        console.log('🚀 ~ ', selectedTags)
         const newTag = selectedTags.find(t => t.uuid === undefined)
         if (newTag !== undefined) {
           const tag = {
@@ -102,18 +103,16 @@ export default {
             color: this.color(newTag)
           }
           this.createTag({ tag })
-          console.log(selectedTags)
           selectedTags = selectedTags.filter(t => t.uuid !== undefined)
           selectedTags.push(tag)
         }
         selectedTags = selectedTags.map(({ uuid }) => ({ uuid }))
-        console.log('🚀 ~ file: Tagger.vue ~ line 108 ~ set ~ selectedTags', selectedTags)
         this.$emit('tag', selectedTags)
       }
     }
   },
   methods: {
-    ...mapActions('tagger', ['createTag']),
+    ...mapActions('tagger', ['createTag', 'updateTag']),
     color (tagText) {
       if (tagText === null || tagText === undefined) return
       var hash = 0
@@ -127,13 +126,14 @@ export default {
       }
       return colour
     },
-    edit (index, item) {
+    edit (index, tag) {
       if (!this.editing) {
-        this.editing = item
+        this.editing = tag
         this.index = index
       } else {
         this.editing = null
         this.index = -1
+        this.updateTag({ tag })
       }
     },
     filter (item, queryText, itemText) {

@@ -21,29 +21,29 @@ module.exports = (orchestrator) => {
   orchestrator.registerScenario('Create a card', async (s, t) => {
     const [alice] = await s.players([conductorConfig])
     const [[alice_kanban_happ]] = await alice.installAgentsHapps(installation)
-    const card = await alice_kanban_happ.cells[0].call('builderKanban', 'create_card', cardData1)
+    const card = await alice_kanban_happ.cells[0].call('builder_kanban', 'create_card', cardData1)
     console.log('card', card)
     t.notEqual(card.entryHash, null)
   })
   orchestrator.registerScenario('Create, then list cards', async (s, t) => {
     const [alice] = await s.players([conductorConfig])
     const [[alice_kanban_happ]] = await alice.installAgentsHapps(installation)
-    const card1 = await alice_kanban_happ.cells[0].call('builderKanban', 'create_card', cardData1);
-    const card2 = await alice_kanban_happ.cells[0].call('builderKanban', 'create_card', cardData2);
+    const card1 = await alice_kanban_happ.cells[0].call('builder_kanban', 'create_card', cardData1);
+    const card2 = await alice_kanban_happ.cells[0].call('builder_kanban', 'create_card', cardData2);
     console.log('card1', card1)
     console.log('card2', card2)
-    const cardList = await alice_kanban_happ.cells[0].call('builderKanban', 'list_cards', { parent: 'Cards' });
+    const cardList = await alice_kanban_happ.cells[0].call('builder_kanban', 'list_cards', { parent: 'Cards' });
     console.log('cardList', cardList)
     t.deepEqual(cardList.cards.length, 2)
   })
   orchestrator.registerScenario('Create then delete a card', async (s, t) => {
     const [alice] = await s.players([conductorConfig])
     const [[alice_kanban_happ]] = await alice.installAgentsHapps(installation)
-    const card = await alice_kanban_happ.cells[0].call('builderKanban', 'create_card', cardData1);
+    const card = await alice_kanban_happ.cells[0].call('builder_kanban', 'create_card', cardData1);
     console.log('card', card)
-    const deletedClient = await alice_kanban_happ.cells[0].call('builderKanban', 'delete_card', card);
+    const deletedClient = await alice_kanban_happ.cells[0].call('builder_kanban', 'delete_card', card);
     console.log('deletedClient', deletedClient)
-    const cardList = await alice_kanban_happ.cells[0].call('builderKanban', 'list_cards', { parent: 'Cards' });
+    const cardList = await alice_kanban_happ.cells[0].call('builder_kanban', 'list_cards', { parent: 'Cards' });
     console.log('cardList', cardList)
     t.deepEqual(cardList.cards.length, 0)
   })

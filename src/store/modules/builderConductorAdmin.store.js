@@ -69,6 +69,10 @@ export default {
         path: '../../builder/dna/builder_kanban/builder_kanban.dna.gz',
         nick: 'builderKanban'
       })
+      dnas.push({
+        path: '../../builder/dna/tagger/tagger.dna.gz',
+        nick: 'tagger'
+      })
       const appId = 'a1a016db-00f1-4ec1-8bef-9970efef94aa'
       state.hcAdmin.installApp({
         installed_app_id: appId,

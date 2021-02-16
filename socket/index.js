@@ -153,7 +153,7 @@ io.on('connection', socket => {
       appServer.kill('SIGINT')
       appServer = undefined
     }
-    const removeFiles = `cd ${rootDir} && rm -rf ${payload.name} && mkdir ${payload.name}`
+    const removeFiles = `cd ${rootDir} && mv ${payload.name}/commits ${rootDir}/commits && rm -rf ${payload.name} && mkdir ${payload.name} && mv ${rootDir}/commits ${payload.name}/commits`
     const fileRemover = spawn(removeFiles, { shell: true })
     fileRemover.stderr.on('data', function (err) {
       console.error('STDERR:', err.toString())
