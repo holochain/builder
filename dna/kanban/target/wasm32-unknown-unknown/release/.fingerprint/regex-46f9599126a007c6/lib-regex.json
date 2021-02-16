@@ -1,1 +1,0 @@
-{"rustc":1392210074234315346,"features":"[\"std\"]","target":7390816642920051939,"profile":1331340118839301972,"path":2956079579502780848,"deps":[[11447444330717245895,"regex_syntax",false,15034233947677848219]],"local":[{"CheckDepInfo":{"dep_info":"wasm32-unknown-unknown/release/.fingerprint/regex-46f9599126a007c6/dep-lib-regex"}}],"rustflags":[],"metadata":1738036602712356696}

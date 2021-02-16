@@ -59,6 +59,12 @@ export default {
       state.db.tags.put(tag)
       commit('createTag', tag)
       // dispatch('holochainSaveCard', { tag })
+    },
+    updateTag ({ state, commit }, payload) {
+      const tag = payload.tag
+      state.db.tags.put(tag)
+      commit('updateTag', tag)
+      // dispatch('holochainSaveCard', { tag })
     }
   },
   mutations: {
@@ -73,6 +79,11 @@ export default {
     },
     createTag (state, payload) {
       state.tags.push(payload)
+    },
+    updateTag (state, payload) {
+      state.tags = state.tags.map(t =>
+        t.uuid !== payload.uuid ? t : { ...t, ...payload }
+      )
     }
   },
   modules: {}

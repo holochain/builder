@@ -66,7 +66,7 @@ export default {
       const agent = state.agent
       const dnas = []
       dnas.push({
-        path: '../../builder/dna/kanban/kanban.dna.gz',
+        path: '../../builder/dna/builder_kanban/builder_kanban.dna.gz',
         nick: 'builderKanban'
       })
       const appId = 'a1a016db-00f1-4ec1-8bef-9970efef94aa'

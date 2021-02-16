@@ -1,5 +1,5 @@
 <template>
-  <v-card class="mx-auto pa-1" width="350">
+  <v-card class="mx-auto pa-1" width="365">
     <v-toolbar
       dense
       dark
@@ -26,17 +26,25 @@
       class="pl-1 pr-1"
     />
     <v-chip
-      v-for="(tag, index) in card.tags"
+      v-for="(tag, index) in selectedTags"
       :key="index"
       class="ml-2 mb-2"
       :color="tag.color"
       label
-      small
+      dark
     >
       {{ tag.tagText }}
     </v-chip>
     <v-divider></v-divider>
     <v-card-actions>
+      <v-avatar
+        size="30"
+        v-for="assignee in card.assignees"
+        :key="assignee.agentPubKey"
+        class="mr-1"
+      >
+        <v-img :src="assignee.avatar"></v-img>
+      </v-avatar>
       <v-spacer></v-spacer>
       <v-btn icon small @click="$emit('edit-card', card)">
         <v-icon>mdi-file-document-edit-outline</v-icon>
@@ -49,12 +57,29 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
 export default {
   name: 'Card',
   props: ['card'],
   data () {
     return {
       details: false
+    }
+  },
+  computed: {
+    ...mapState('tagger', ['tags']),
+    selectedTags () {
+      const selectedTags = []
+      this.card.tags.forEach(selectedTagUuid => {
+        const selectedTag = this.tags.find(t => t.uuid === selectedTagUuid.uuid)
+        if (selectedTag !== undefined) selectedTags.push(selectedTag)
+      })
+      return selectedTags
+    }
+  },
+  methods: {
+    getTag (tagUuid) {
+      return this.tags.find(t => t.uuid === tagUuid)
     }
   }
 }

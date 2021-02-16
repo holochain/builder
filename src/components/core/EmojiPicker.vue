@@ -1,18 +1,16 @@
 <template>
-  <v-dialog v-model="isOpen" width="400px">
+  <v-dialog v-model="isOpen" scrollable width="400px">
     <v-card height="400px">
       <v-card-title class="white--text">
         <span class="headline">Emoji Picker</span>
       </v-card-title>
-      <v-card-text>
-        <div>
-          <emoji
-            v-for="emoji in emojis"
-            v-bind:key="emoji.key"
-            :emoji="emoji"
-            @click="addEmoji"
-          ></emoji>
-        </div>
+      <v-card-text class="scroll">
+        <emoji
+          v-for="emoji in emojis"
+          v-bind:key="emoji.key"
+          :emoji="emoji"
+          @click="addEmoji"
+        ></emoji>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -35,3 +33,8 @@ export default {
   }
 }
 </script>
+<style scoped>
+.scroll {
+   overflow-y: scroll
+}
+</style>

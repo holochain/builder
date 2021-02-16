@@ -7,7 +7,7 @@
           :style="`height: ${cwHeight}px; width: 100%;`"
           :gutterSize="2"
         >
-          <split-area :size="22">
+          <split-area :size="20">
             <v-toolbar dense dark>
               <builder-menu />
               <v-toolbar-title class="ml-2 mt-n1 mr-1 font-weight-black">Project Explorer</v-toolbar-title>
@@ -29,7 +29,7 @@
               :height="cwHeight"
             />
           </split-area>
-          <split-area :size="78">
+          <split-area :size="80">
             <v-sheet class="mx-auto fill-height" elevation="8">
               <column
                 v-if="selectedColumn !== undefined"
@@ -46,14 +46,14 @@
                 </template>
                 <v-slide-group
                   v-model="model"
-                  class="pa-1 fill-height"
+                  class="fill-height"
                   show-arrows
                 >
                   <v-slide-item
                     v-for="column in columns"
                     :key="column.uuid"
                   >
-                    <div class="pa-1">
+                    <div class="pl-1">
                       <column
                       :column="column"
                       :key="`${column.uuid}`"
@@ -138,7 +138,7 @@
       right
       :width="this.$vuetify.breakpoint.lgAndUp ? 700 : 500"
     >
-      <v-card>
+      <v-card class="fill-height">
         <v-system-bar window dark>
           <v-icon>mdi-card-text-outline</v-icon>
           <span class="pl-1 pr-2">Column ({{ parentColumnName }})</span>
@@ -184,9 +184,15 @@
             </v-col>
             <v-col cols="12" class="pr-2 pl-2">
               <tagger
-                :selectedTags="selectedTags"
+                :selectedTagUuids="selectedTagUuids"
                 @tag="tag"
                 class="pa-0" />
+            </v-col>
+            <v-col cols="12" class="pr-2 pl-2">
+              <people-selector
+                :selectedPeople="selectedPeople"
+                @people-selected="peopleSelected"
+              />
             </v-col>
           </v-row>
           <emoji-picker :isOpen="emojiPanel" @add-emoji="addEmoji" />
@@ -237,7 +243,8 @@ export default {
     CardTree: () => import('@/components/builder/kanban/CardTree.vue'),
     ConfirmActionDialog: () => import('@/components/ConfirmActionDialog.vue'),
     EmojiPicker: () => import('@/components/core/EmojiPicker.vue'),
-    Tagger: () => import('@/components/tags/Tagger.vue')
+    Tagger: () => import('@/components/tags/Tagger.vue'),
+    PeopleSelector: () => import('@/components/core/PeopleSelector.vue')
   },
   data: () => ({
     model: null,
@@ -262,6 +269,7 @@ export default {
     editingCard: {
       uuid: uuidv4(),
       name: '',
+      description: '',
       reactions: [],
       tags: [],
       parentColumn: '',
@@ -269,7 +277,8 @@ export default {
       parent: 'Cards',
       order: 0
     },
-    selectedTags: [],
+    selectedTagUuids: [],
+    selectedPeople: [],
     action: 'create',
     select: [],
     items: [
@@ -339,6 +348,7 @@ export default {
         name: '',
         description: '',
         reactions: [],
+        tags: [],
         parentColumn: column.uuid,
         cardType: 'card',
         parent: 'Cards',
@@ -348,13 +358,14 @@ export default {
       this.cardDrawerOpen = true
     },
     editCard (card, column) {
-      console.log(card)
       this.parentColumnName = column.name
       this.editingCard = { ...card }
       if (card.description === undefined) this.editingCard.description = ''
       if (card.reactions === undefined) this.editingCard.reactions = []
       if (card.tags === undefined) this.editingCard.tags = []
-      this.selectedTags = this.editingCard.tags
+      if (card.assignees === undefined) this.editingCard.assignees = []
+      this.selectedTagUuids = this.editingCard.tags
+      this.selectedPeople = this.editingCard.assignees
       this.action = 'update'
       this.cardDrawerOpen = true
     },
@@ -365,7 +376,9 @@ export default {
       this.deleteCardDialog = true
     },
     saveCd () {
-      this.editingCard.tags = this.selectedTags
+      this.editingCard.tags = this.selectedTagUuids
+      this.editingCard.assignees = this.selectedPeople
+      console.log('🚀 ', this.editingCard)
       this.saveCard({ card: this.editingCard, action: this.action })
       this.cardDrawerOpen = false
     },
@@ -427,9 +440,12 @@ export default {
     removeReaction (emoji) {
       this.editingCard.reactions = this.editingCard.reactions.filter(r => r !== emoji)
     },
-    tag (selectedTags) {
-      this.editingCard.tags = selectedTags
-      this.selectedTags = selectedTags
+    tag (selectedTagUuids) {
+      this.editingCard.tags = selectedTagUuids
+      this.selectedTagUuids = selectedTagUuids
+    },
+    peopleSelected (people) {
+      this.editingCard.assignees = people
     }
   },
   mounted () {

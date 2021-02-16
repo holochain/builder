@@ -28,9 +28,8 @@
           v-bind="attrs"
           :input-value="selected"
           label
-          outlined
+          dark
           :color="item.color"
-          small
           class="ml-1"
         >
           <span class="pr-2">
@@ -50,7 +49,7 @@
           solo
           @keyup.enter="edit(index, item)"
         ></v-text-field>
-        <v-chip v-else :color="color(item.tagText)" dark label outlined small>
+        <v-chip v-else :color="color(item.tagText)" dark label>
           {{ item.tagText }}
         </v-chip>
         <v-spacer></v-spacer>
@@ -69,7 +68,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { mapState, mapActions } from 'vuex'
 export default {
   name: 'Tagger',
-  props: ['selectedTags'],
+  props: ['selectedTagUuids'],
   data: () => ({
     activator: null,
     attach: null,
@@ -84,7 +83,14 @@ export default {
     ...mapState('tagger', ['tags']),
     model: {
       get () {
-        return this.selectedTags
+        console.log(this.selectedTagUuids)
+        const selectedTags = []
+        this.selectedTagUuids.forEach(selectedTagUuid => {
+          const selectedTag = this.tags.find(t => t.uuid === selectedTagUuid.uuid)
+          console.log('🚀  selectedTag', selectedTag)
+          if (selectedTag !== undefined) selectedTags.push(selectedTag)
+        })
+        return selectedTags
       },
       set (selectedTags) {
         console.log('🚀 ~ ', selectedTags)
@@ -100,6 +106,8 @@ export default {
           selectedTags = selectedTags.filter(t => t.uuid !== undefined)
           selectedTags.push(tag)
         }
+        selectedTags = selectedTags.map(({ uuid }) => ({ uuid }))
+        console.log('🚀 ~ file: Tagger.vue ~ line 108 ~ set ~ selectedTags', selectedTags)
         this.$emit('tag', selectedTags)
       }
     }

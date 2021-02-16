@@ -25,21 +25,15 @@ export default {
   actions: {
     initialise ({ state, dispatch }) {
       state.db = new Dexie('builderOrganisations')
-      state.db.version(1).stores({
-        organisations: 'uuid,name',
-        currentOrganisation: 'uuid,name'
+      state.db.version(2).stores({
+        organisations: 'uuid,name'
       })
       dispatch('fetchOrganisations')
-      state.db.currentOrganisation.toArray(org => {
-        state.organisation = org[0]
-      })
     },
     saveOrganisation ({ state, commit }, payload) {
       const organisation = payload
       commit('setOrganisation', organisation)
       state.db.organisations.put(organisation)
-      state.db.currentOrganisation.clear()
-        .then(() => state.db.currentOrganisation.put(organisation))
       // if (organisation.entryHash) {
       //   state.hcClient
       //     .callZome({
@@ -70,6 +64,12 @@ export default {
       state.db.organisations.toArray(all => {
         commit('setOrganisations', all)
       })
+      const currentOrgUuid = localStorage.getItem('currentOrganisationUuid')
+      if (currentOrgUuid !== undefined) {
+        state.db.organisations.get({ uuid: currentOrgUuid }).then(org => {
+          commit('setOrganisation', org)
+        })
+      }
     }
   },
   mutations: {

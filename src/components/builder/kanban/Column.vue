@@ -1,7 +1,7 @@
 <template>
   <section id="column">
-    <v-card min-width='350' :color="isSelected ? 'grey darken-3' : 'grey lighten-1'">
-      <v-toolbar dense dark>
+    <v-card min-width='372' :color="isSelected ? 'grey darken-3' : 'grey lighten-1'" :class="isSelected ? 'pt-0' : 'pt-1'">
+      <v-toolbar dense dark class="ml-1 mr-1">
         <v-toolbar-title>
           {{column.name}}
         </v-toolbar-title>
@@ -142,11 +142,11 @@ export default {
 .column-selected {
   box-sizing: border-box;
   overflow-y: auto;
-  height: calc(100vh - 46px);
+  height: calc(100vh - 48px);
 }
 .column {
   box-sizing: border-box;
   overflow-y: auto;
-  height: calc(100vh - 111px);
+  height: calc(100vh - 103px);
 }
 </style>
