@@ -90,10 +90,10 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn icon @click="generateAgentKey({ agent })">
-            <v-icon>mdi-account-key-outline</v-icon>
+            <v-icon :color="hasPubKey ? 'success' : 'action'">mdi-account-key-outline</v-icon>
           </v-btn>
           <v-btn icon @click="installDnas()">
-            <v-icon>mdi-application-import</v-icon>
+            <v-icon :color="hasCellIds ? 'success' : 'action'">mdi-application-import</v-icon>
           </v-btn>
           <v-btn icon @click="saveAgent({ agent }); editProfileDialog=false">
             <v-icon>mdi-content-save-outline</v-icon>
@@ -117,7 +117,13 @@ export default {
     }
   },
   computed: {
-    ...mapState('builderConductorAdmin', ['agent'])
+    ...mapState('builderConductorAdmin', ['agent']),
+    hasPubKey () {
+      return this.agent.agentPubKey !== undefined
+    },
+    hasCellIds () {
+      return this.agent.cellData !== undefined
+    }
   },
   methods: {
     ...mapActions('builderConductorAdmin', ['saveAgent', 'generateAgentKey', 'installDnas'])

@@ -51,7 +51,7 @@
             style="overflow: auto;"
           >
             <v-col v-for="card in colCards" :key="`${card.uuid}`" class="pa-1">
-              <card :card="card" @edit-card="$emit('edit-card', card, column)" @delete-card="$emit('delete-card', card, column)"/>
+              <card :card="card" @edit-card="$emit('edit-card', card, column, 'edit')" @delete-card="$emit('delete-card', card, column)" @edit-card-specs="$emit('edit-card', card, column, 'specs')"/>
             </v-col>
           </draggable>
         </v-col>

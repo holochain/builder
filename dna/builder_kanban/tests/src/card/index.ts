@@ -14,8 +14,16 @@ const installation: InstallAgentsHapps = [
 ]
 
 const conductorConfig = Config.gen()
-const cardData1 = { parentColumn: '/', name: 'Card 1', description: '', reactions: '', tags: '', uuid: uuidv4(), cardType: 'card', order: 0, parent: 'Cards' }
-const cardData2 = { parentColumn: '/', name: 'Card 2', description: '', reactions: '', tags: '', uuid: uuidv4(), cardType: 'card', order: 0, parent: 'Cards' }
+const cardData1 = {
+  uuid: uuidv4(),
+  parentColumn: '/',
+  name: 'Card 1',
+  cardType: 'card',
+  order: 0,
+  parent: 'Cards',
+  cardData: ''
+}
+const cardData2 = { parentColumn: '/', name: 'Card 2', cardData: '', uuid: uuidv4(), cardType: 'card', order: 1, parent: 'Cards' }
 
 module.exports = (orchestrator) => {
   orchestrator.registerScenario('Create a card', async (s, t) => {

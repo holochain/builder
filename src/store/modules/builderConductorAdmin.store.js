@@ -89,6 +89,17 @@ export default {
         commit('updateAgent', agent)
         state.db.agent.put(agent)
       })
+    },
+    cellMissing ({ state, commit }) {
+      const agent = state.agent
+      localStorage.removeItem('agentPubKey')
+      agent.cellData.forEach(cell => {
+        localStorage.removeItem(`${cell[1]}CellId`)
+      })
+      delete agent.agentPubKey
+      delete agent.cellData
+      commit('updateAgent', agent)
+      state.db.agent.put(agent)
     }
   },
   mutations: {

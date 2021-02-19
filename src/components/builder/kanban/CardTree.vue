@@ -134,7 +134,7 @@ export default {
       const parentColumn = item.uuid
       return new Promise(resolve => {
         this.db.cards.where({ parentColumn }).toArray(entries => {
-          item.children = entries.map(entry => {
+          item.children = entries.sort((a, b) => a.order - b.order).map(entry => {
             entry.key = entry.uuid
             if (entry.cardType === 'column') {
               entry.children = []

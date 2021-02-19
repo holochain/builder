@@ -5,16 +5,14 @@
     :items="people"
     dark
     dense
-    filled
-    outlined
-    chips
+    small-chips
+    solo
     item-text="name"
     item-value="agentPubKey"
     label="Assign this card"
     persistent-hint
     multiple
     ripple
-    small
     color="primary"
     class="pt-n3"
   >

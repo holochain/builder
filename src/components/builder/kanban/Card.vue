@@ -36,7 +36,7 @@
       {{ tag.tagText }}
     </v-chip>
     <v-divider></v-divider>
-    <v-card-actions>
+    <v-card-actions v-if="this.card.cardType === 'card'">
       <v-avatar
         size="30"
         v-for="assignee in card.assignees"
@@ -46,7 +46,10 @@
         <v-img :src="assignee.avatar"></v-img>
       </v-avatar>
       <v-spacer></v-spacer>
-      <v-btn icon small @click="$emit('edit-card', card)">
+      <v-btn icon small @click="$emit('edit-card-specs', card, 'specs')">
+        <v-icon>mdi-notebook-edit-outline</v-icon>
+      </v-btn>
+      <v-btn icon small @click="$emit('edit-card', card, 'edit')">
         <v-icon>mdi-file-document-edit-outline</v-icon>
       </v-btn>
       <v-btn icon small color="warning" @click="$emit('delete-card', card)">
@@ -69,6 +72,7 @@ export default {
   computed: {
     ...mapState('tagger', ['tags']),
     selectedTags () {
+      if (this.card.cardType === 'column') return
       const selectedTags = []
       this.card.tags.forEach(selectedTagUuid => {
         const selectedTag = this.tags.find(t => t.uuid === selectedTagUuid.uuid)
@@ -81,6 +85,9 @@ export default {
     getTag (tagUuid) {
       return this.tags.find(t => t.uuid === tagUuid)
     }
+  },
+  created () {
+    if (this.card.tags === undefined) this.card.tags = []
   }
 }
 </script>

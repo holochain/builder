@@ -7,8 +7,19 @@ Vue.use(Vuex)
 
 function batchSaveCards (hcClient, builderKanbanCellId, agentPubKey, cards, cardIndex) {
   const cardToMigrate = { ...cards[cardIndex] }
-  cardToMigrate.tags = JSON.stringify(cardToMigrate.tags)
-  cardToMigrate.reactions = JSON.stringify(cardToMigrate.reactions)
+  if (cardToMigrate.cardType === 'column') {
+    cardToMigrate.cardData = ''
+  } else {
+    if (cardToMigrate.description === undefined) cardToMigrate.description = ''
+    if (cardToMigrate.tags === undefined) cardToMigrate.tags = []
+    if (cardToMigrate.reactions === undefined) cardToMigrate.reaction = []
+    const cardData = {
+      description: cardToMigrate.description,
+      tags: cardToMigrate.tags,
+      reactions: cardToMigrate.reactions
+    }
+    cardToMigrate.cardData = JSON.stringify(cardData)
+  }
   hcClient.callZome({
     cap: null,
     cell_id: [builderKanbanCellId, agentPubKey],
@@ -70,7 +81,7 @@ export default {
         })
       })
     },
-    fetchCards ({ rootState, state, commit }) {
+    fetchCards ({ rootState, state, commit, dispatch }) {
       state.db.cards.toArray(cards => {
         commit('setCards', cards)
         if (state.builderKanbanCellId !== '') {
@@ -88,14 +99,24 @@ export default {
               if (result.cards.length === 0 && cards.length > 0) {
                 commit('setMigrate', true)
               } else {
-                result.cards.forEach(card => {
-                  card.entryHash = base64.bytesToBase64(card.entryHash)
-                  card.tags = JSON.parse(card.tags)
-                  card.reactions = JSON.parse(card.reactions)
-                  state.db.cards.put(card)
+                result.cards.forEach(committedEntry => {
+                  committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
+                  if (committedEntry.cardType === 'card') {
+                    const cardData = JSON.parse(committedEntry.cardData)
+                    committedEntry.description = cardData.description
+                    committedEntry.tags = cardData.tags
+                    committedEntry.reactions = cardData.reactions
+                    if (cardData.specs === undefined) cardData.specs = []
+                    committedEntry.specs = cardData.specs
+                  }
+                  state.db.cards.put(committedEntry)
                 })
                 commit('setCards', result.cards)
               }
+            })
+            .catch(err => {
+              console.log(err.data)
+              if (err.data.data.includes('CellMissing')) dispatch('builderConductorAdmin/cellMissing', null, { root: true })
             })
         }
       })
@@ -112,8 +133,17 @@ export default {
     },
     holochainSaveCard ({ rootState, state, commit }, payload) {
       const card = payload.card
-      card.tags = JSON.stringify(card.tags)
-      card.reactions = JSON.stringify(card.reactions)
+      if (card.cardType === 'column') {
+        card.cardData = ''
+      } else {
+        const cardData = {
+          description: card.description,
+          tags: card.tags,
+          reactions: card.reactions,
+          specs: card.specs
+        }
+        card.cardData = JSON.stringify(cardData)
+      }
       if (card.entryHash) {
         card.entryHash = base64.base64ToBytes(card.entryHash)
         rootState.builderConductorAdmin.hcClient
@@ -137,8 +167,13 @@ export default {
         })
         .then(committedEntry => {
           committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
-          committedEntry.tags = JSON.parse(committedEntry.tags)
-          committedEntry.reactions = JSON.parse(committedEntry.reactions)
+          if (committedEntry.cardType === 'card') {
+            const cardData = JSON.parse(committedEntry.cardData)
+            committedEntry.description = cardData.description
+            committedEntry.tags = cardData.tags
+            committedEntry.reactions = cardData.reactions
+            committedEntry.specs = cardData.specs
+          }
           state.db.cards.put(committedEntry)
           commit('updateCard', committedEntry)
         })

@@ -40,6 +40,7 @@
                 @delete-column="deleteCol"
                 @add-card="addCard"
                 @edit-card="editCard"
+                @edit-card-specs="editCard"
                 @delete-card="deleteCd">
                 <template v-slot:agent>
                   <agent />
@@ -61,6 +62,7 @@
                       @delete-column="deleteCol"
                       @add-card="addCard"
                       @edit-card="editCard"
+                      @edit-card-specs="editCard"
                       @delete-card="deleteCd">
                       </column>
                     </div>
@@ -216,6 +218,61 @@
         </v-card-actions>
       </v-card>
     </v-navigation-drawer>
+    <v-navigation-drawer
+      v-model="specsDrawerOpen"
+      fixed
+      dark
+      class="overflow-visible pa-0"
+      right
+      :width="this.$vuetify.breakpoint.lgAndUp ? 1000 : 800"
+    >
+      <v-card class="fill-height">
+        <v-system-bar window dark>
+          <v-icon>mdi-notebook-edit-outline</v-icon>
+          <span class="pl-1 pr-2">Specs for {{ editingCard.name }}</span>
+          <v-btn
+            icon
+            v-for="emoji in editingCard.reactions"
+            :key="emoji"
+            @click="removeReaction(emoji)">
+            <v-icon>{{ emoji }}</v-icon>
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+            icon
+            small
+            @click="openEmojiPicker()">
+            <v-icon>mdi-emoticon-outline</v-icon>
+          </v-btn>
+          <v-btn
+            icon
+            small
+            @click="specsDrawerOpen = false">
+            <v-icon>mdi-close-box-outline</v-icon>
+          </v-btn>
+        </v-system-bar>
+        <v-card-text class="specs">
+          <blox :blox="specs" :fileTypes="fileTypes" @changed="updateSpecs"/>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary darken-1"
+            text
+            @click="cardDrawerOpen = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="primary darken-1"
+            text
+            @click="saveCd"
+          >
+            Save
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-navigation-drawer>
     <confirm-action-dialog
       :isOpen="deleteCardDialog"
       :message="`delete ${this.editingCard.name} from ${this.parentColumnName}`"
@@ -243,6 +300,7 @@ export default {
     CardTree: () => import('@/components/builder/kanban/CardTree.vue'),
     ConfirmActionDialog: () => import('@/components/ConfirmActionDialog.vue'),
     EmojiPicker: () => import('@/components/core/EmojiPicker.vue'),
+    Blox: () => import('@/components/blox/Blox.vue'),
     Tagger: () => import('@/components/tags/Tagger.vue'),
     PeopleSelector: () => import('@/components/core/PeopleSelector.vue')
   },
@@ -250,6 +308,7 @@ export default {
     model: null,
     columnDrawerOpen: false,
     cardDrawerOpen: false,
+    specsDrawerOpen: false,
     deleteCardDialog: false,
     deleteColumnDialog: false,
     cwHeight: 700,
@@ -262,7 +321,6 @@ export default {
       parentColumn: 'root',
       children: [],
       cardType: 'column',
-      preview: '',
       parent: 'Cards',
       order: 0
     },
@@ -287,10 +345,12 @@ export default {
       'Music Player',
       'Video Player',
       'Tags'
-    ]
+    ],
+    specs: []
   }),
   computed: {
     ...mapState('builderKanban', ['treeItems', 'selectedColumn', 'cards', 'migrate']),
+    ...mapState('builderDeveloper', ['fileTypes']),
     columns () {
       return this.cards
         .filter(card => card.cardType === 'column')
@@ -349,6 +409,7 @@ export default {
         description: '',
         reactions: [],
         tags: [],
+        specs: [],
         parentColumn: column.uuid,
         cardType: 'card',
         parent: 'Cards',
@@ -357,17 +418,27 @@ export default {
       this.action = 'create'
       this.cardDrawerOpen = true
     },
-    editCard (card, column) {
+    editCard (card, column, drawer) {
       this.parentColumnName = column.name
       this.editingCard = { ...card }
       if (card.description === undefined) this.editingCard.description = ''
       if (card.reactions === undefined) this.editingCard.reactions = []
       if (card.tags === undefined) this.editingCard.tags = []
+      if (card.specs === undefined) this.editingCard.specs = []
       if (card.assignees === undefined) this.editingCard.assignees = []
       this.selectedTagUuids = this.editingCard.tags
       this.selectedPeople = this.editingCard.assignees
+      this.specs = this.editingCard.specs
       this.action = 'update'
-      this.cardDrawerOpen = true
+      console.log('🚀 ~', this.editingCard.specs)
+      switch (drawer) {
+        case 'edit':
+          this.cardDrawerOpen = true
+          break
+        case 'specs':
+          this.specsDrawerOpen = true
+          break
+      }
     },
     deleteCd (card, column) {
       this.parentColumnName = column.name
@@ -378,9 +449,11 @@ export default {
     saveCd () {
       this.editingCard.tags = this.selectedTagUuids
       this.editingCard.assignees = this.selectedPeople
+      this.editingCard.specs = this.specs
       console.log('🚀 ', this.editingCard)
       this.saveCard({ card: this.editingCard, action: this.action })
       this.cardDrawerOpen = false
+      this.specsDrawerOpen = false
     },
     setCodeWindowHeight () {
       this.cwHeight = this.$el.clientHeight
@@ -446,6 +519,10 @@ export default {
     },
     peopleSelected (people) {
       this.editingCard.assignees = people
+    },
+    updateSpecs (specs) {
+      console.log(specs)
+      this.specs = specs
     }
   },
   mounted () {
@@ -454,3 +531,10 @@ export default {
   }
 }
 </script>
+<style scoped>
+.specs {
+  box-sizing: border-box;
+  overflow-y: auto;
+  height: calc(100vh - 83px);
+}
+</style>

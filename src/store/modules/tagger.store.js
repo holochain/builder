@@ -51,7 +51,7 @@ export default {
       }
       dispatch('fetchTags')
     },
-    fetchTags ({ rootState, state, commit }) {
+    fetchTags ({ rootState, state, commit, dispatch }) {
       state.db.tags.toArray(tags => {
         if (tags !== undefined && tags !== null) commit('setTags', tags)
         if (state.taggerCellId !== '') {
@@ -74,6 +74,10 @@ export default {
                 })
                 commit('setTags', result.tags)
               }
+            })
+            .catch(err => {
+              console.log(err.data)
+              if (err.data.data.includes('CellMissing')) dispatch('builderConductorAdmin/cellMissing', null, { root: true })
             })
         }
       })
