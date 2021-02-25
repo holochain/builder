@@ -5,16 +5,15 @@
         <v-row no-gutters>
           <v-col cols="1">
             <v-icon v-if="hover" @click="setEditMode(blok)" v-text="editMode[blok.uuid] ? 'mdi-content-save-outline' : 'mdi-square-edit-outline'"></v-icon>
-            <v-icon v-if="hover" color="warning" class="pl-2">mdi-delete-outline</v-icon>
+            <v-icon v-if="hover" @click="deleteBlok(blok)" color="warning" class="pl-2">mdi-delete-outline</v-icon>
           </v-col>
           <v-col cols="11" :id="blok.uuid">
             <blok-editor
               v-if="editMode[blok.uuid]"
               :options="getOptions(blok)"
               :blok="blok"
-              @edited="contentChanged"
-              :height="getHeight(blok.uuid)" />
-            <blok v-else class="pa-0 ma-0 mb-1 text--primary" :blok="blok" />
+              @edited="contentChanged"/>
+            <blok v-else class="pa-0 ma-0 mb-1" :blok="blok" />
           </v-col>
         </v-row>
       </v-hover>
@@ -73,12 +72,6 @@ export default {
     }
   },
   methods: {
-    getHeight (id) {
-      let height = 100
-      if (document.getElementById(id) !== null) height = document.getElementById(id).offsetHeight
-      if (height < 100) height = 100
-      return height
-    },
     setEditMode (blok) {
       this.editMode[blok.uuid] = !this.editMode[blok.uuid]
       if (!this.editMode[blok.uuid]) this.$emit('changed', this.internalBlox)
@@ -141,6 +134,11 @@ export default {
       })
       this.$emit('changed', this.internalBlox)
       this.editMode[uuid] = true
+    },
+    deleteBlok (blok) {
+      this.internalBlox = this.internalBlox.filter(b => b.uuid !== blok.uuid)
+      this.$emit('changed', this.internalBlox)
+      delete this.editMode[blok.uuid]
     }
   },
   watch: {
@@ -152,7 +150,6 @@ export default {
     }
   },
   created () {
-    console.log(this.blox)
     this.blox.forEach(blok => {
       this.editMode[blok.uuid] = false
     })

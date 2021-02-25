@@ -101,7 +101,7 @@ export default {
       state.db = new Dexie('builderDeveloper')
       state.db.version(1).stores({
         agents: 'uuid,name,parent',
-        commits: 'uuid,parentBranch,branch,timestamp',
+        commits: 'uuid,project,parentBranch,branch,timestamp',
         currentFiles: '[parentDir+name],parentDir,parentBranch,branch',
         committedFiles: '[parentDir+name],parentDir,parentBranch,branch'
       })
@@ -162,6 +162,7 @@ export default {
         commit('stdOutMessage', `${file.parentDir}${file.name}`)
         if (file.parentDir === `/${state.applicationName}/commits/`) {
           const savedCommit = JSON.parse(file.content)
+          savedCommit.project = state.applicationName
           state.db.commits.put(savedCommit)
         } else {
           state.db.currentFiles.put(file)
@@ -175,21 +176,29 @@ export default {
         state.db.currentFiles.toArray(currentFiles => {
           commit('currentFiles', currentFiles)
           const branchCommits = getters.branchCommits
+          console.log('🚀 ~ file: builderDeveloper.store.js ~ line 179 ~ state.socket.on ~ branchCommits', branchCommits)
           if (branchCommits[0]) {
             localStorage.setItem('commitUuid', branchCommits[0].uuid)
           } else {
             localStorage.removeItem('commitUuid')
           }
-          state.db.committedFiles.clear()
+          // state.db.commits.where('project').anyOf(state.applicationName).delete()
+          //   .then(function (deleteCount) {
+          //     console.log( 'Deleted ' + deleteCount + ' objects')
+          //   })
           commit('committedFiles', [])
           let branchFiles = []
-          branchCommits.forEach(bc => {
+          console.log(branchCommits.sort((a, b) => a.timestamp - b.timestamp))
+          branchCommits.sort((a, b) => a.timestamp - b.timestamp).forEach(bc => {
             bc.newFiles.forEach(file => {
               const keyFile = { ...file, key: `${file.parentDir}${file.name}` }
               branchFiles.push(keyFile)
             })
+            console.log(branchFiles)
             bc.updatedFiles.forEach(update => {
+              console.log('🚀 ~ file: builderDeveloper.store.js ~ line 199 ~ state.socket.on ~ update', update)
               const fileToUpdate = branchFiles.find(file => file.key === `${update.parentDir}${update.name}`)
+              console.log('🚀 ~ file: builderDeveloper.store.js ~ line 199 ~ state.socket.on ~ fileToUpdate', fileToUpdate)
               const dmp = new DiffMatchPatch()
               const patches = dmp.patch_fromText(update.patch)
               const result = dmp.patch_apply(patches, fileToUpdate.content)
@@ -367,8 +376,6 @@ export default {
       console.log(payload)
       const name = payload.name
       const preset = payload.preset
-      state.db.committedFiles.clear()
-      state.db.commits.clear()
       state.db.currentFiles.clear().then(() => {
         state.db.currentFiles.put({
           parentDir: '/',
@@ -384,8 +391,12 @@ export default {
       const product = payload.product
       console.log(rootState)
       const name = `vue-cli-plugin-${rootState.builderOrganisations.organisation.name}-app-${state.applicationName}`
+      state.db.commits.where('project').anyOf(state.applicationName).delete()
+        .then(function (deleteCount) {
+          console.log('Deleted ' + deleteCount + ' objects')
+        })
+      commit('committedFiles', [])
       state.db.committedFiles.clear()
-      state.db.commits.clear()
       state.db.currentFiles.clear().then(() => {
         state.db.currentFiles.put({
           parentDir: '/',
@@ -402,7 +413,6 @@ export default {
       console.log(rootState)
       const name = `vue-cli-plugin-${rootState.builderOrganisations.organisation.name}-module-${state.applicationName}`
       state.db.committedFiles.clear()
-      state.db.commits.clear()
       state.db.currentFiles.clear().then(() => {
         state.db.currentFiles.put({
           parentDir: '/',
@@ -439,7 +449,7 @@ export default {
       })
     },
     clearCommits ({ state, commit }) {
-      state.db.commits.clear()
+      state.db.commits.where({ project: state.applicationName }).delete()
         .then(() => {
           commit('setCommits', [])
         })
@@ -505,6 +515,7 @@ export default {
       if (state.commits.length === 0) type = 'branch'
       const newCommit = {
         uuid: uuidv4(),
+        project: state.applicationName,
         branch: state.currentBranch.branch,
         parentBranch: state.currentBranch.parentBranch,
         type,
@@ -536,6 +547,7 @@ export default {
       const author = payload.author
       const newCommit = {
         uuid: uuidv4(),
+        project: state.applicationName,
         branch: payload.name,
         parentBranch: `${state.currentBranch.parentBranch}${state.currentBranch.branch}/`,
         type: 'branch',
@@ -703,6 +715,7 @@ export default {
       const mergeTargetBranch = parentBranches[parentBranches.length - 2]
       const newCommit = {
         uuid: uuidv4(),
+        project: state.applicationName,
         branch: mergeTargetBranch,
         parentBranch: `${state.currentBranch.parentBranch}${state.currentBranch.branch}`,
         type,
@@ -1015,7 +1028,8 @@ export default {
   },
   getters: {
     branches: state => {
-      if (state.commits.length === 0) {
+      console.log(state.commits.filter(c => c.project === state.applicationName).length)
+      if (state.commits.filter(c => c.project === state.applicationName).length === 0) {
         return [
           {
             parentBranch: '/',
@@ -1024,7 +1038,8 @@ export default {
           }
         ]
       } else {
-        const branchCommits = state.commits.filter(commit => commit.type === 'branch').sort((a, b) => a.timestamp > b.timestamp)
+        const branchCommits = state.commits.filter(c => c.project === state.applicationName).filter(commit => commit.type === 'branch').sort((a, b) => a.timestamp > b.timestamp)
+        console.log('🚀 ~ file: builderDeveloper.store.js ~ line 1040 ~ branchCommits', branchCommits)
         return branchCommits.map(bc => (
           {
             parentBranch: bc.parentBranch,
@@ -1035,7 +1050,9 @@ export default {
       }
     },
     branchCommits: state => {
-      return state.commits.filter(commit => commit.branch === state.currentBranch.branch).sort((a, b) => a.timestamp > b.timestamp)
+      console.log(state.applicationName)
+      console.log(state.commits.filter(commit => (commit.branch === state.currentBranch.branch)).sort((a, b) => a.timestamp > b.timestamp).filter(c => c.project === state.applicationName))
+      return state.commits.filter(c => c.project === state.applicationName).filter(commit => (commit.branch === state.currentBranch.branch)).sort((a, b) => a.timestamp > b.timestamp)
     }
   },
   mutations: {

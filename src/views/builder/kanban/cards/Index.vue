@@ -259,7 +259,7 @@
           <v-btn
             color="primary darken-1"
             text
-            @click="cardDrawerOpen = false"
+            @click="cardDrawerOpen = false; specsDrawerOpen = false"
           >
             Cancel
           </v-btn>

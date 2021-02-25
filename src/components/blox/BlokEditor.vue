@@ -1,6 +1,6 @@
 <template>
   <div v-if="options.mode === 'image'">
-    <v-img :src="internalContent" :height="height" contain />
+    <v-img :src="internalContent" contain />
     <v-file-input
       v-model="uploadedFile"
       accept="image/*"
@@ -45,6 +45,7 @@ export default {
     return {
       internalBlok: this.blok,
       internalContent: this.blok.content,
+      internalHeight: this.height,
       uploadedFile: []
     }
   },
@@ -59,11 +60,11 @@ export default {
   },
   mounted () {
     console.log(this.blok)
-    if (this.$refs.editor) this.$refs.editor.codemirror.setSize(null, this.height)
+    if (this.$refs.editor) this.$refs.editor.codemirror.setSize(null, '100%')
   },
   watch: {
-    height (val) {
-      if (this.$refs.editor) this.$refs.editor.codemirror.setSize(null, val)
+    internalHeight (val) {
+      if (this.$refs.editor) this.$refs.editor.codemirror.setSize(null, '100%')
     },
     uploadedFile (fileToUpload) {
       if (fileToUpload === null) {

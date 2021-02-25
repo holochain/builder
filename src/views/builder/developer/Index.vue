@@ -638,7 +638,7 @@
       right
       :width="this.$vuetify.breakpoint.lgAndUp ? 1100 : 900"
     >
-      <file-sharing @close="fileStatusDrawerOpen = false" @change-branch="stdMessagesDialog = true" />
+      <file-sharing :key="fileStatusDrawerOpen" @close="fileStatusDrawerOpen = false" @change-branch="stdMessagesDialog = true" />
     </v-navigation-drawer>
   </v-card>
 </template>

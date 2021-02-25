@@ -1,5 +1,8 @@
 <template>
-  <div v-show="renderedMarkdown" v-html="renderedMarkdown"></div>
+  <div v-if="blok.extension === 'png'">
+    <v-img :src="blok.content" contain />
+  </div>
+  <div v-else v-html="renderedMarkdown"></div>
 </template>
 
 <script>
@@ -47,10 +50,6 @@ export default {
           break
         case 'md':
           break
-        case 'png':
-        case 'jpg':
-        case 'jpeg':
-          content = '![Image](' + content + ')'
       }
       content = renderer.render(content)
       return content
