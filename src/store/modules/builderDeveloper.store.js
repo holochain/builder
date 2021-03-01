@@ -21,6 +21,7 @@ export default {
     plugins: [],
     refreshKey: 0,
     treeRefreshKey: 0,
+    gitgraphKey: 0,
     stdOutMessages: [],
     appServerMessages: [],
     appServerRunning: false,
@@ -257,7 +258,6 @@ export default {
           commit('conductorRunning', true)
           AdminWebsocket.connect(process.env.VUE_APP_HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL, 10000).then(admin => {
             state.hcAdmin = admin
-            console.log('🚀 ~ file: builder.store.js ~ line 212 ~ AdminWebsocket.connect ~ admin', admin)
             state.hcAdmin.attachAppInterface({ port: parseInt(process.env.VUE_APP_HOLOCHAIN_APP_INTERFACE_PORT) }).then(() => {
               state.hcClient.port = parseInt(process.env.VUE_APP_HOLOCHAIN_APP_INTERFACE_DOCKER_PORT)
             })
@@ -458,8 +458,9 @@ export default {
           commit('committedFiles', [])
         })
     },
-    getStatus ({ state }, payload) {
+    getStatus ({ state, commit }, payload) {
       const name = payload.name
+      commit('setApplicationName', name)
       state.db.currentFiles.clear().then(() => {
         state.db.currentFiles.put({
           parentDir: '/',
@@ -706,6 +707,7 @@ export default {
         mergedDeletedFiles
       })
       commit('stdOutMessage', 'GET_STATUS finished calculating merge')
+      commit('redrawGitGraph')
     },
     mergeBranch ({ state, commit, dispatch }, payload) {
       const message = payload.mergeMessage
@@ -1039,7 +1041,6 @@ export default {
         ]
       } else {
         const branchCommits = state.commits.filter(c => c.project === state.applicationName).filter(commit => commit.type === 'branch').sort((a, b) => a.timestamp > b.timestamp)
-        console.log('🚀 ~ file: builderDeveloper.store.js ~ line 1040 ~ branchCommits', branchCommits)
         return branchCommits.map(bc => (
           {
             parentBranch: bc.parentBranch,
@@ -1050,8 +1051,6 @@ export default {
       }
     },
     branchCommits: state => {
-      console.log(state.applicationName)
-      console.log(state.commits.filter(commit => (commit.branch === state.currentBranch.branch)).sort((a, b) => a.timestamp > b.timestamp).filter(c => c.project === state.applicationName))
       return state.commits.filter(c => c.project === state.applicationName).filter(commit => (commit.branch === state.currentBranch.branch)).sort((a, b) => a.timestamp > b.timestamp)
     }
   },
@@ -1103,6 +1102,10 @@ export default {
     },
     incrementTreeRefreshKey (state) {
       state.treeRefreshKey++
+    },
+    redrawGitGraph (state) {
+      console.log(';redrawGitGraph')
+      state.gitgraphKey += 1
     },
     dnaPaths (state, payload) {
       state.dnaPaths = payload

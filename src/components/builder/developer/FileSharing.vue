@@ -47,7 +47,6 @@
           <v-card
             id="gitgraphcard"
             class="graph-container mb-2"
-            :key="treeRefreshKey"
             dark
           >
           </v-card>
@@ -423,7 +422,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('builderDeveloper', ['applicationName', 'currentBranch', 'currentFiles', 'commits', 'currentChanges', 'committedFiles', 'mergeChanges', 'fileTypes', 'treeRefreshKey']),
+    ...mapState('builderDeveloper', ['applicationName', 'currentBranch', 'currentFiles', 'commits', 'currentChanges', 'committedFiles', 'mergeChanges', 'fileTypes', 'treeRefreshKey', 'gitgraphKey']),
     ...mapGetters('builderDeveloper', ['branchCommits']),
     branches () {
       return this.$store.getters['builderDeveloper/branches']
@@ -477,14 +476,14 @@ export default {
       const commitDate = new Date(timestamp)
       return `${commitDate.getFullYear()}.${(commitDate.getMonth() + 1)}.${commitDate.getDate()}:${commitDate.getHours()}:${commitDate.getMinutes()}`
     },
-    showBranchGraph () {
+    showBranchGraph (appplicationName) {
       setTimeout(() => {
         const graphContainer = document.getElementById('gitgraphcard')
         const gitgraph = createGitgraph(graphContainer)
         let graphBranch
-        console.log(this.appplicationName)
-        console.log(this.commits.filter(c => c.project === this.appplicationName))
-        if (this.commits.filter(c => c.project === this.appplicationName).length === 0) {
+        console.log(appplicationName)
+        console.log(this.commits.filter(c => c.project === appplicationName))
+        if (this.commits.filter(c => c.project === appplicationName).length === 0) {
           graphBranch = gitgraph
             .branch('main')
             .commit({
@@ -497,7 +496,7 @@ export default {
               }
             })
         } else {
-          this.commits.filter(c => c.project === this.appplicationName).sort((a, b) => a.timestamp - b.timestamp).forEach(commit => {
+          this.commits.filter(c => c.project === appplicationName).sort((a, b) => a.timestamp - b.timestamp).forEach(commit => {
             const parentBranchParts = commit.parentBranch.split('/')
             const parentBranchName = parentBranchParts[parentBranchParts.length - 2]
             if (commit.type === 'branch') {
@@ -579,11 +578,8 @@ export default {
     }
   },
   watch: {
-    commits () {
-      this.showBranchGraph()
-    },
     currentBranch () {
-      this.showBranchGraph()
+      if (this.applicationName) this.showBranchGraph(this.applicationName)
     }
   }
 }
