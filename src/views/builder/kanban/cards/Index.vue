@@ -535,9 +535,8 @@ export default {
       })
     },
     toggleColumns () {
-      console.log(this.columnWidthFactor)
       if (this.columnWidthFactor === 3.04) {
-        this.columnWidthFactor = 4
+        this.columnWidthFactor = 4.07
       } else {
         this.columnWidthFactor = 3.04
       }
