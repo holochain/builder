@@ -1,6 +1,6 @@
 <template>
   <section id="column">
-    <v-card min-width='372' :color="isSelected ? 'grey darken-3' : 'grey lighten-1'" :class="isSelected ? 'pt-0' : 'pt-1'">
+    <v-card :width="minWidth" :color="isSelected ? 'grey darken-3' : 'grey lighten-1'" :class="isSelected ? 'pt-0' : 'pt-1'">
       <v-toolbar dense dark class="ml-1 mr-1">
         <v-toolbar-title>
           {{column.name}}
@@ -36,7 +36,7 @@
             style="overflow: auto;"
           >
             <v-col v-for="card in colColumns" :key="`${card.uuid}`" class="pa-1">
-              <card :card="card"/>
+              <card :card="card" :minWidth="minWidth"/>
             </v-col>
           </draggable>
           <draggable
@@ -51,7 +51,7 @@
             style="overflow: auto;"
           >
             <v-col v-for="card in colCards" :key="`${card.uuid}`" class="pa-1">
-              <card :card="card" @edit-card="$emit('edit-card', card, column, 'edit')" @delete-card="$emit('delete-card', card, column)" @edit-card-specs="$emit('edit-card', card, column, 'specs')"/>
+              <card :card="card" :minWidth="minWidth" @edit-card="$emit('edit-card', card, column, 'edit')" @delete-card="$emit('delete-card', card, column)" @edit-card-specs="$emit('edit-card', card, column, 'specs')"/>
             </v-col>
           </draggable>
         </v-col>
@@ -72,7 +72,7 @@ export default {
     draggable,
     Card: () => import('./Card.vue')
   },
-  props: ['column', 'isSelected'],
+  props: ['column', 'isSelected', 'minWidth'],
   data () {
     return {}
   },

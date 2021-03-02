@@ -1,5 +1,5 @@
 <template>
-  <v-card class="mx-auto pa-1" width="365">
+  <v-card class="mx-auto pa-1" :width="minWidth">
     <v-toolbar
       dense
       dark
@@ -63,7 +63,7 @@
 import { mapState } from 'vuex'
 export default {
   name: 'Card',
-  props: ['card'],
+  props: ['card', 'minWidth'],
   data () {
     return {
       details: false

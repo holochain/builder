@@ -29,7 +29,7 @@
               :height="cwHeight"
             />
           </split-area>
-          <split-area :size="80">
+          <split-area :size="80" ref="columnsSplit">
             <v-sheet class="mx-auto fill-height" elevation="8">
               <column
                 v-if="selectedColumn !== undefined"
@@ -48,7 +48,6 @@
                 <v-slide-group
                   v-model="model"
                   class="fill-height"
-                  show-arrows
                 >
                   <v-slide-item
                     v-for="column in columns"
@@ -56,14 +55,15 @@
                   >
                     <div class="pl-1">
                       <column
-                      :column="column"
-                      :key="`${column.uuid}`"
-                      @edit-column="editColumn"
-                      @delete-column="deleteCol"
-                      @add-card="addCard"
-                      @edit-card="editCard"
-                      @edit-card-specs="editCard"
-                      @delete-card="deleteCd">
+                        :minWidth="columnWidth"
+                        :column="column"
+                        :key="`${column.uuid}`"
+                        @edit-column="editColumn"
+                        @delete-column="deleteCol"
+                        @add-card="addCard"
+                        @edit-card="editCard"
+                        @edit-card-specs="editCard"
+                        @delete-card="deleteCd">
                       </column>
                     </div>
                   </v-slide-item>
@@ -314,6 +314,7 @@ export default {
     cwHeight: 700,
     emojiPanel: false,
     selectedTreeItem: {},
+    columnWidth: 400,
     parentColumnName: '',
     editingColumn: {
       uuid: uuidv4(),
@@ -527,6 +528,10 @@ export default {
   },
   mounted () {
     this.setCodeWindowHeight()
+    const that = this
+    that.$nextTick(() => {
+      this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / 3.05
+    })
     this.$store.dispatch('builderKanban/initialise')
   }
 }
