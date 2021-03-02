@@ -651,13 +651,13 @@ io.on('connection', socket => {
   })
 
   socket.on('CREATE_INVITE_PACKAGE', (payload) => {
-    fs.writeFile(`${orgInvitePackageDir}/org-details.json`, payload,
+    fs.writeFile(`${orgInvitePackageDir}/org-details.json`, JSON.stringify(payload),
       err => {
         if (err) throw err
         console.log(`${orgInvitePackageDir}/org-details.json has been saved!`)
       }
     )
-    const createInviteCmd = `cd ${builderDnaDir} && find . -type f \\( -iname "*.dna.gz" ! -iname "test.dna.gz" \\) |  xargs  -I _ cp _ ${orgInvitePackageDir} && cd  ${orgInvitePackageDir} && tar -cvzf invite.gz .`
+    const createInviteCmd = `cd ${builderDnaDir} && find . -type f \\( -iname "*.dna.gz" ! -iname "test.dna.gz" \\) |  xargs  -I _ cp _ ${orgInvitePackageDir} && cd  ${orgInvitePackageDir} && tar -cvzf invite.tar.gz .`
       const inviteCreator = spawn(createInviteCmd, { shell: true })
       inviteCreator.stderr.on('data', function (err) {
         console.log('CREATE_INVITE_PACKAGE_ERROR', err.toString())
@@ -672,18 +672,18 @@ io.on('connection', socket => {
 
   socket.on('JOIN_ORGANISATION', (payload) => {
     var buf = Buffer.from(payload.data, 'gzip')
-    fs.writeFileSync(`${allOrgsDir}/invite.gz`, buf)
-    // const createInviteCmd = `cd ${builderDnaDir} && find . -type f \\( -iname "*.dna.gz" ! -iname "test.dna.gz" \\) |  xargs  -I _ cp _ ${orgInvitePackageDir} && cd  ${orgInvitePackageDir} && tar -cvzf invite.gz .`
-    //   const inviteCreator = spawn(createInviteCmd, { shell: true })
-    //   inviteCreator.stderr.on('data', function (err) {
-    //     console.log('CREATE_INVITE_PACKAGE_ERROR', err.toString())
-    //   })
-    //   inviteCreator.stdout.on('data', function (data) {
-    //     console.log('CREATE_INVITE_PACKAGE_STDOUT', data.toString())
-    //   })
-    //   inviteCreator.on('exit', function () {
-    //     console.log('CREATE_INVITE_PACKAGE_EXIT', orgInvitePackageDir)
-    //   })
+    fs.writeFileSync(`${allOrgsDir}/invite.tar.gz`, buf)
+    const joinOrgCmd = `cd ${allOrgsDir} && tar -xf ${allOrgsDir}/invite.tar.gz`
+      const orgJoiner = spawn(joinOrgCmd, { shell: true })
+      orgJoiner.stderr.on('data', function (err) {
+        console.log('JOIN_ORGANISATION_ERROR', err.toString())
+      })
+      orgJoiner.stdout.on('data', function (data) {
+        console.log('JOIN_ORGANISATION_STDOUT', data.toString())
+      })
+      orgJoiner.on('exit', function () {
+        console.log('JOIN_ORGANISATION_EXIT', orgInvitePackageDir)
+      })
   })
 })
 io.on('error', () => {

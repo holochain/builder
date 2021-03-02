@@ -196,6 +196,9 @@ export default {
   watch: {
     organisation (orgProfile) {
       this.orgProfile = { ...orgProfile }
+    },
+    uploadedFile (invitePackage) {
+      this.joinOrganisation(invitePackage)
     }
   },
   created () {

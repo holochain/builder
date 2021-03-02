@@ -91,7 +91,7 @@ export default {
           console.log(result)
           // state.db.organisations.put(organisation)
           // commit('setOrganisation', organisation)
-        })    
+        })
         console.log('Image content read.')
       }
       reader.readAsArrayBuffer(invite)
