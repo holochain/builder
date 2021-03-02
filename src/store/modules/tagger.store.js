@@ -2,6 +2,9 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import Dexie from 'dexie'
 import * as base64 from 'byte-base64'
+import { AppWebsocket } from '@holochain/conductor-api'
+
+const HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
 
 Vue.use(Vuex)
 
@@ -31,6 +34,7 @@ function batchSaveTags (hcClient, taggerCellId, agentPubKey, tags, tagIndex) {
 export default {
   namespaced: true,
   state: {
+    hcClient: {},
     agentPubKey: '',
     taggerCellId: '',
     tags: [],
@@ -42,20 +46,28 @@ export default {
       state.db.version(1).stores({
         tags: 'uuid,tagText'
       })
-      if (localStorage.getItem('agentPubKey')) commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem('agentPubKey'))))
-      if (localStorage.getItem('taggerCellId')) {
-        const taggerCellId = localStorage.getItem('taggerCellId')
-        if (taggerCellId) {
-          commit('taggerCellId', base64.base64ToBytes(decodeURIComponent(taggerCellId)))
-        }
-      }
-      dispatch('fetchTags')
+      AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
+        .then(socket => {
+          commit('hcClient', socket)
+          if (localStorage.getItem('currentOrganisationUuid')) {
+            const organisationUuid = localStorage.getItem('currentOrganisationUuid')
+            if (localStorage.getItem(`${organisationUuid}-agentPubKey`)) commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem(`${organisationUuid}-agentPubKey`))))
+            if (localStorage.getItem(`${organisationUuid}-taggerCellId`)) {
+              const taggerCellId = localStorage.getItem(`${organisationUuid}-taggerCellId`)
+              if (taggerCellId) {
+                commit('taggerCellId', base64.base64ToBytes(decodeURIComponent(taggerCellId)))
+              }
+            }
+            dispatch('fetchTags')
+          }
+        })
+        .catch(err => console.log('hcClient', err))
     },
-    fetchTags ({ rootState, state, commit, dispatch }) {
+    fetchTags ({ state, commit, dispatch }) {
       state.db.tags.toArray(tags => {
         if (tags !== undefined && tags !== null) commit('setTags', tags)
         if (state.taggerCellId !== '') {
-          rootState.builderConductorAdmin.hcClient
+          state.hcClient
             .callZome({
               cap: null,
               cell_id: [state.taggerCellId, state.agentPubKey],
@@ -95,11 +107,11 @@ export default {
       commit('updateTag', tag)
       dispatch('holochainSaveTag', { tag })
     },
-    holochainSaveTag ({ rootState, state, commit }, payload) {
+    holochainSaveTag ({ state, commit }, payload) {
       const tag = payload.tag
       if (tag.entryHash) {
         tag.entryHash = base64.base64ToBytes(tag.entryHash)
-        rootState.builderConductorAdmin.hcClient
+        state.hcClient
           .callZome({
             cap: null,
             cell_id: [state.taggerCellId, state.agentPubKey],
@@ -109,7 +121,7 @@ export default {
             payload: tag
           })
       }
-      rootState.builderConductorAdmin.hcClient
+      state.hcClient
         .callZome({
           cap: null,
           cell_id: [state.taggerCellId, state.agentPubKey],
@@ -124,11 +136,14 @@ export default {
           commit('updateTag', committedEntry)
         })
     },
-    migrateIndexDbToHolochain ({ rootState, state }) {
-      batchSaveTags(rootState.builderConductorAdmin.hcClient, state.taggerCellId, state.agentPubKey, state.tags, 0)
+    migrateIndexDbToHolochain ({ state }) {
+      batchSaveTags(state.hcClient, state.taggerCellId, state.agentPubKey, state.tags, 0)
     }
   },
   mutations: {
+    hcClient (state, payload) {
+      state.hcClient = payload
+    },
     agentPubKey (state, payload) {
       state.agentPubKey = payload
     },
