@@ -3,8 +3,10 @@ const server = require('http').createServer()
 const options = {}
 const SERVER_PORT = process.env.SERVER_PORT
 const builderOrg = process.env.ORGANISATION
+const allOrgsDir = `${__dirname.replace('builder/socket', '')}builder-organisations`
 const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
-const devPresetsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/presets`
+const builderDnaDir = `${__dirname.replace('socket', 'dna')}`
+const orgInvitePackageDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/invite-package`
 const devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
 let rootDir = devAppsDir
 const io = require('socket.io')(server, options)
@@ -17,13 +19,12 @@ let appServer = undefined
 if (!fs.existsSync(rootDir)) {
   fs.mkdirSync(rootDir, { recursive: true })
 }
-if (!fs.existsSync(devPresetsDir)) {
-  fs.mkdirSync(devPresetsDir, { recursive: true })
-}
 if (!fs.existsSync(devPluginsDir)) {
   fs.mkdirSync(devPluginsDir, { recursive: true })
 }
-
+if (!fs.existsSync(orgInvitePackageDir)) {
+  fs.mkdirSync(orgInvitePackageDir, { recursive: true })
+}
 function getFileType (fileName) {
   if (fileName.startsWith('.')) return fileName.replace('.', '')
   const index = fileName.lastIndexOf('.') + 1
@@ -647,6 +648,42 @@ io.on('connection', socket => {
       yarnInstall.on('exit', function () {
         socket.emit('TERMINAL_EXIT', 'REINSTALL_NODE_MODULES_FINISHED')
       })
+  })
+
+  socket.on('CREATE_INVITE_PACKAGE', (payload) => {
+    fs.writeFile(`${orgInvitePackageDir}/org-details.json`, payload,
+      err => {
+        if (err) throw err
+        console.log(`${orgInvitePackageDir}/org-details.json has been saved!`)
+      }
+    )
+    const createInviteCmd = `cd ${builderDnaDir} && find . -type f \\( -iname "*.dna.gz" ! -iname "test.dna.gz" \\) |  xargs  -I _ cp _ ${orgInvitePackageDir} && cd  ${orgInvitePackageDir} && tar -cvzf invite.gz .`
+      const inviteCreator = spawn(createInviteCmd, { shell: true })
+      inviteCreator.stderr.on('data', function (err) {
+        console.log('CREATE_INVITE_PACKAGE_ERROR', err.toString())
+      })
+      inviteCreator.stdout.on('data', function (data) {
+        console.log('CREATE_INVITE_PACKAGE_STDOUT', data.toString())
+      })
+      inviteCreator.on('exit', function () {
+        console.log('CREATE_INVITE_PACKAGE_EXIT', orgInvitePackageDir)
+      })
+  })
+
+  socket.on('JOIN_ORGANISATION', (payload) => {
+    var buf = Buffer.from(payload.data, 'gzip')
+    fs.writeFileSync(`${allOrgsDir}/invite.gz`, buf)
+    // const createInviteCmd = `cd ${builderDnaDir} && find . -type f \\( -iname "*.dna.gz" ! -iname "test.dna.gz" \\) |  xargs  -I _ cp _ ${orgInvitePackageDir} && cd  ${orgInvitePackageDir} && tar -cvzf invite.gz .`
+    //   const inviteCreator = spawn(createInviteCmd, { shell: true })
+    //   inviteCreator.stderr.on('data', function (err) {
+    //     console.log('CREATE_INVITE_PACKAGE_ERROR', err.toString())
+    //   })
+    //   inviteCreator.stdout.on('data', function (data) {
+    //     console.log('CREATE_INVITE_PACKAGE_STDOUT', data.toString())
+    //   })
+    //   inviteCreator.on('exit', function () {
+    //     console.log('CREATE_INVITE_PACKAGE_EXIT', orgInvitePackageDir)
+    //   })
   })
 })
 io.on('error', () => {

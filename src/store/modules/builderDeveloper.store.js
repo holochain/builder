@@ -983,7 +983,6 @@ export default {
       })
     },
     installDna ({ state, rootState, commit }, payload) {
-      console.log(payload)
       const dnas = []
       payload.dnaPaths.forEach(dna => {
         dnas.push({
@@ -991,8 +990,6 @@ export default {
           nick: dna.name
         })
       })
-      console.log(dnas)
-
       const agent = payload.agent
       const appId = uuidv4()
       state.hcAdmin.installApp({

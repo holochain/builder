@@ -98,6 +98,9 @@
           <v-btn icon @click="saveAgent({ agent }); editProfileDialog=false">
             <v-icon>mdi-content-save-outline</v-icon>
           </v-btn>
+          <v-btn icon @click="editProfileDialog=false">
+            <v-icon>mdi-close-box-outline</v-icon>
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

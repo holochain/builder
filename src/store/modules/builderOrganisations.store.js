@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import { v4 as uuidv4 } from 'uuid'
-// import * as base64 from 'byte-base64'
+import io from 'socket.io-client'
 import Dexie from 'dexie'
 
 Vue.use(Vuex)
@@ -23,12 +23,16 @@ export default {
     organisations: []
   },
   actions: {
-    initialise ({ state, dispatch }) {
+    initialise ({ state, commit, dispatch }) {
       state.db = new Dexie('builderOrganisations')
       state.db.version(2).stores({
         organisations: 'uuid,name'
       })
       dispatch('fetchOrganisations')
+      state.socket = io(process.env.VUE_APP_SOCKET_URL)
+      state.socket.on('CREATE_INVITE_PACKAGE_EXIT', data => {
+        commit('setPackagePath', data)
+      })
     },
     saveOrganisation ({ state, commit }, payload) {
       const organisation = payload
@@ -70,6 +74,27 @@ export default {
           commit('setOrganisation', org)
         })
       }
+    },
+    createInvitePackage ({ state }, payload) {
+      const organisation = payload.organisation
+      state.socket.emit('CREATE_INVITE_PACKAGE', { organisation })
+    },
+    joinOrganisation ({ state }, payload) {
+      const invite = payload
+      console.log(state)
+      var reader = new FileReader()
+      var rawData = new ArrayBuffer()
+      reader.onload = function (e) {
+        rawData = e.target.result
+        state.socket.emit('JOIN_ORGANISATION', { data: rawData }, (result) => {
+          // const organisation = result.organisation
+          console.log(result)
+          // state.db.organisations.put(organisation)
+          // commit('setOrganisation', organisation)
+        })    
+        console.log('Image content read.')
+      }
+      reader.readAsArrayBuffer(invite)
     }
   },
   mutations: {
@@ -79,6 +104,9 @@ export default {
     },
     setOrganisations (state, payload) {
       state.organisations = payload
+    },
+    setPackagePath  (state, payload) {
+      state.organisationPackagePath = payload
     }
   },
   modules: {}

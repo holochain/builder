@@ -9,6 +9,9 @@
       <v-btn icon @click="newOrganisation">
         <v-icon>mdi-briefcase-plus-outline</v-icon>
       </v-btn>
+      <v-btn icon @click="join = true; newOrganisation()">
+        <v-icon>mdi-account-group-outline</v-icon>
+      </v-btn>
       <agent />
     </v-app-bar>
     <v-container fluid>
@@ -34,15 +37,58 @@
 
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn icon @click="goToDeveloper(organisation)">
-                <v-icon>mdi-code-braces</v-icon>
-              </v-btn>
-              <v-btn icon @click="goToKanban(organisation)">
-                <v-icon>mdi-view-column-outline</v-icon>
-              </v-btn>
-              <v-btn icon @click="openOrganisationDetails(organisation)">
-                <v-icon>mdi-briefcase-edit-outline</v-icon>
-              </v-btn>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    @click="goToDeveloper(organisation)"
+                    dark
+                    v-bind="attrs"
+                    v-on="on">
+                    <v-icon>mdi-code-braces</v-icon>
+                  </v-btn>
+                </template>
+                <span>Open Developer IDE</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    @click="goToKanban(organisation)"
+                    dark
+                    v-bind="attrs"
+                    v-on="on">
+                    <v-icon>mdi-view-column-outline</v-icon>
+                  </v-btn>
+                </template>
+                <span>Open Recursive Kanban Boards</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    @click="openOrganisationDetails(organisation)"
+                    dark
+                    v-bind="attrs"
+                    v-on="on">
+                    <v-icon>mdi-briefcase-edit-outline</v-icon>
+                  </v-btn>
+                </template>
+                <span>Open Organisation Details</span>
+              </v-tooltip>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    @click="createInvitePackage({ organisation })"
+                    dark
+                    v-bind="attrs"
+                    v-on="on">
+                    <v-icon>mdi-package-variant-closed</v-icon>
+                  </v-btn>
+                </template>
+                <span>Create Organisation Invite Package</span>
+              </v-tooltip>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -58,11 +104,28 @@
     >
       <v-card dark dense flat class="fill-height">
         <v-system-bar window dark>
-          <span>Organisation Details</span>
+          <span v-if="joinOrganisation">Upload an invite package to join that Organisation</span>
+          <span v-else>Organisation Details</span>
           <v-spacer></v-spacer>
           <v-icon @click="orgDrawerOpen = false">mdi-close</v-icon>
         </v-system-bar>
         <v-card-text>
+          <v-file-input
+            v-if="joinOrganisation"
+            v-model="uploadedFile"
+            accept="application/x-gzip"
+            label="Upload invite package"
+            outlined
+            dense
+            dark
+            prepend-icon="mdi-folder-zip-outline"
+          >
+            <template v-slot:selection="{ text }">
+              <v-card-subtitle>
+                {{ text }}
+              </v-card-subtitle>
+            </template>
+          </v-file-input>
           <organisation-edit
             :key="orgProfile.uuid"
             :orgProfile="orgProfile"
@@ -73,7 +136,7 @@
   </v-card>
 </template>
 <script>
-import { mapState } from 'vuex'
+import { mapState, mapActions } from 'vuex'
 import { v4 as uuidv4 } from 'uuid'
 export default {
   name: 'Organisations',
@@ -93,9 +156,12 @@ export default {
       financialInstitution: '',
       bsb: '',
       account: ''
-    }
+    },
+    join: false,
+    uploadedFile: []
   }),
   methods: {
+    ...mapActions('builderOrganisations', ['createInvitePackage', 'joinOrganisation']),
     openOrganisationDetails (org) {
       this.orgProfile = { ...org }
       this.orgDrawerOpen = true
