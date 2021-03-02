@@ -6,15 +6,63 @@
           {{column.name}}
         </v-toolbar-title>
         <v-spacer></v-spacer>
-        <v-btn icon small color="primary" @click="$emit('edit-column', column)">
-          <v-icon>mdi-folder-edit-outline</v-icon>
-        </v-btn>
-        <v-btn icon small color="primary" @click="$emit('add-card', column, colCards.length)">
-          <v-icon>mdi-card-plus-outline</v-icon>
-        </v-btn>
-        <v-btn icon small color="primary" @click="$emit('delete-column', column)">
-          <v-icon>mdi-delete</v-icon>
-        </v-btn>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn
+              v-if="isSelected"
+              icon
+              small
+              color="primary"
+              @click="$emit('toggle-columns')"
+              v-bind="attrs"
+              v-on="on">
+              <v-icon>mdi-view-column-outline</v-icon>
+            </v-btn>
+          </template>
+          <span>Switch between 3 or 4 columns</span>
+        </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn
+              icon
+              small
+              color="primary"
+              @click="$emit('edit-column', column)"
+              v-bind="attrs"
+              v-on="on">
+              <v-icon>mdi-folder-edit-outline</v-icon>
+            </v-btn>
+          </template>
+          <span>Edit the column details</span>
+        </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn
+              icon
+              small
+              color="primary"
+              @click="$emit('add-card', column, colCards.length)"
+              v-bind="attrs"
+              v-on="on">
+              <v-icon>mdi-card-plus-outline</v-icon>
+            </v-btn>
+          </template>
+          <span>Add a card to this column</span>
+        </v-tooltip>
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn
+              icon
+              small
+              color="warning"
+              @click="$emit('delete-column', column)"
+              v-bind="attrs"
+              v-on="on">
+              <v-icon>mdi-delete</v-icon>
+            </v-btn>
+          </template>
+          <span>Delete this column</span>
+        </v-tooltip>
         <slot name="agent">
         </slot>
       </v-toolbar>

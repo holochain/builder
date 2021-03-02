@@ -42,7 +42,8 @@
                 @add-card="addCard"
                 @edit-card="editCard"
                 @edit-card-specs="editCard"
-                @delete-card="deleteCd">
+                @delete-card="deleteCd"
+                @toggle-columns="toggleColumns">
                 <template v-slot:agent>
                   <agent />
                 </template>
@@ -316,6 +317,7 @@ export default {
     emojiPanel: false,
     selectedTreeItem: {},
     columnWidth: 400,
+    columnWidthFactor: 3.04,
     parentColumnName: '',
     editingColumn: {
       uuid: uuidv4(),
@@ -526,19 +528,27 @@ export default {
       console.log(specs)
       this.specs = specs
     },
-    onDragEnd (size) {
-      console.log('Drag End', size) // callback new size
+    onDragEnd () {
       const that = this
       that.$nextTick(() => {
-        this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / 3.04
+        this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / this.columnWidthFactor
       })
+    },
+    toggleColumns () {
+      console.log(this.columnWidthFactor)
+      if (this.columnWidthFactor === 3.04) {
+        this.columnWidthFactor = 4
+      } else {
+        this.columnWidthFactor = 3.04
+      }
+      this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / this.columnWidthFactor
     }
   },
   mounted () {
     this.setCodeWindowHeight()
     const that = this
     that.$nextTick(() => {
-      this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / 3.04
+      this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / this.columnWidthFactor
     })
     this.$store.dispatch('builderKanban/initialise')
   }
