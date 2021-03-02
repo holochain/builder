@@ -2,6 +2,9 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import * as base64 from 'byte-base64'
 import Dexie from 'dexie'
+import { AppWebsocket } from '@holochain/conductor-api'
+
+const HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
 
 Vue.use(Vuex)
 
@@ -57,14 +60,22 @@ export default {
       state.db.version(1).stores({
         cards: 'uuid,[parentColumn+name],parentColumn'
       })
-      if (localStorage.getItem('agentPubKey')) commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem('agentPubKey'))))
-      if (localStorage.getItem('builderKanbanCellId')) {
-        const builderKanbanCellId = localStorage.getItem('builderKanbanCellId')
-        if (builderKanbanCellId) {
-          commit('builderKanbanCellId', base64.base64ToBytes(decodeURIComponent(builderKanbanCellId)))
-        }
-      }
-      dispatch('fetchCards')
+      AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
+        .then(socket => {
+          commit('hcClient', socket)
+          if (localStorage.getItem('currentOrganisationUuid')) {
+            const organisationUuid = localStorage.getItem('currentOrganisationUuid')
+            if (localStorage.getItem(`${organisationUuid}-agentPubKey`)) commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem(`${organisationUuid}-agentPubKey`))))
+            if (localStorage.getItem(`${organisationUuid}-builderKanbanCellId`)) {
+              const builderKanbanCellId = localStorage.getItem(`${organisationUuid}-builderKanbanCellId`)
+              if (builderKanbanCellId) {
+                commit('builderKanbanCellId', base64.base64ToBytes(decodeURIComponent(builderKanbanCellId)))
+              }
+            }
+            dispatch('fetchCards')
+          }
+        })
+        .catch(err => console.log('hcClient', err))
     },
     async getTreeRootColumns ({ state, commit }, payload) {
       return new Promise(resolve => {
@@ -81,11 +92,11 @@ export default {
         })
       })
     },
-    fetchCards ({ rootState, state, commit, dispatch }) {
+    fetchCards ({ state, commit, dispatch }) {
       state.db.cards.toArray(cards => {
         commit('setCards', cards)
         if (state.builderKanbanCellId !== '') {
-          rootState.builderConductorAdmin.hcClient
+          state.hcClient
             .callZome({
               cap: null,
               cell_id: [state.builderKanbanCellId, state.agentPubKey],
@@ -131,7 +142,7 @@ export default {
       }
       dispatch('holochainSaveCard', { card })
     },
-    holochainSaveCard ({ rootState, state, commit }, payload) {
+    holochainSaveCard ({ state, commit }, payload) {
       const card = payload.card
       if (card.cardType === 'column') {
         card.cardData = ''
@@ -146,7 +157,7 @@ export default {
       }
       if (card.entryHash) {
         card.entryHash = base64.base64ToBytes(card.entryHash)
-        rootState.builderConductorAdmin.hcClient
+        state.hcClient
           .callZome({
             cap: null,
             cell_id: [state.builderKanbanCellId, state.agentPubKey],
@@ -156,7 +167,7 @@ export default {
             payload: card
           })
       }
-      rootState.builderConductorAdmin.hcClient
+      state.hcClient
         .callZome({
           cap: null,
           cell_id: [state.builderKanbanCellId, state.agentPubKey],
@@ -178,14 +189,14 @@ export default {
           commit('updateCard', committedEntry)
         })
     },
-    deleteCard ({ rootState, state, commit }, payload) {
+    deleteCard ({ state, commit }, payload) {
       const card = payload.card
       card.tags = JSON.stringify(card.tags)
       card.reactions = JSON.stringify(card.reactions)
       state.db.cards.delete(card.uuid)
       card.entryHash = base64.base64ToBytes(card.entryHash)
       commit('deleteCard', card)
-      rootState.builderConductorAdmin.hcClient
+      state.hcClient
         .callZome({
           cap: null,
           cell_id: [state.builderKanbanCellId, state.agentPubKey],
@@ -196,8 +207,8 @@ export default {
         })
         .then(result => console.log(result))
     },
-    migrateIndexDbToHolochain ({ rootState, state }) {
-      batchSaveCards(rootState.builderConductorAdmin.hcClient, state.builderKanbanCellId, state.agentPubKey, state.cards, 0)
+    migrateIndexDbToHolochain ({ state }) {
+      batchSaveCards(state.hcClient, state.builderKanbanCellId, state.agentPubKey, state.cards, 0)
     }
   },
   mutations: {

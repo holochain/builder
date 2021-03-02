@@ -89,12 +89,6 @@
         <v-img :src="internalAvatar" width="200" class="mx-auto" />
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn icon @click="generateAgentKey({ agent })">
-            <v-icon :color="hasPubKey ? 'success' : 'action'">mdi-account-key-outline</v-icon>
-          </v-btn>
-          <v-btn icon @click="installDnas()">
-            <v-icon :color="hasCellIds ? 'success' : 'action'">mdi-application-import</v-icon>
-          </v-btn>
           <v-btn icon @click="saveAgent({ agent }); editProfileDialog=false">
             <v-icon>mdi-content-save-outline</v-icon>
           </v-btn>
@@ -120,16 +114,10 @@ export default {
     }
   },
   computed: {
-    ...mapState('builderConductorAdmin', ['agent']),
-    hasPubKey () {
-      return this.agent.agentPubKey !== undefined
-    },
-    hasCellIds () {
-      return this.agent.cellData !== undefined
-    }
+    ...mapState('builderOrganisations', ['agent'])
   },
   methods: {
-    ...mapActions('builderConductorAdmin', ['saveAgent', 'generateAgentKey', 'installDnas'])
+    ...mapActions('builderOrganisations', ['saveAgent'])
   },
   watch: {
     uploadedFile (fileToUpload) {
@@ -146,7 +134,6 @@ export default {
     }
   },
   created () {
-    this.$store.dispatch('builderConductorAdmin/initialise')
     this.internalAvatar = this.agent.avatar
   }
 }

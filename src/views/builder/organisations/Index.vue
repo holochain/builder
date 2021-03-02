@@ -36,6 +36,18 @@
             </v-img>
 
             <v-card-actions>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    @click="installDnas({ organisation })"
+                    v-bind="attrs"
+                    v-on="on">
+                    <v-icon>mdi-dna</v-icon>
+                  </v-btn>
+                </template>
+                <span>Reinstall locally built DNAs</span>
+              </v-tooltip>
               <v-spacer></v-spacer>
               <v-tooltip bottom>
                 <template v-slot:activator="{ on, attrs }">
@@ -104,10 +116,10 @@
     >
       <v-card dark dense flat class="fill-height">
         <v-system-bar window dark>
-          <span v-if="joinOrganisation">Upload an invite package to join that Organisation</span>
+          <span v-if="join">Upload an invite package to join that Organisation</span>
           <span v-else>Organisation Details</span>
           <v-spacer></v-spacer>
-          <v-icon @click="orgDrawerOpen = false">mdi-close</v-icon>
+          <v-icon @click="orgDrawerOpen = false; join = false">mdi-close</v-icon>
         </v-system-bar>
         <v-card-text>
           <v-file-input
@@ -129,7 +141,7 @@
           <organisation-edit
             :key="orgProfile.uuid"
             :orgProfile="orgProfile"
-            @close="orgDrawerOpen = false"/>
+            @close="orgDrawerOpen = false; join = false"/>
         </v-card-text>
       </v-card>
     </v-navigation-drawer>
@@ -160,8 +172,11 @@ export default {
     join: false,
     uploadedFile: []
   }),
+  computed: {
+    ...mapState('builderOrganisations', ['organisations', 'organisation', 'agent'])
+  },
   methods: {
-    ...mapActions('builderOrganisations', ['createInvitePackage', 'joinOrganisation']),
+    ...mapActions('builderOrganisations', ['createInvitePackage', 'joinOrganisation', 'installDnas']),
     openOrganisationDetails (org) {
       this.orgProfile = { ...org }
       this.orgDrawerOpen = true
@@ -189,9 +204,6 @@ export default {
       localStorage.setItem('currentOrganisationUuid', organisation.uuid)
       this.$router.push('/builder/kanban')
     }
-  },
-  computed: {
-    ...mapState('builderOrganisations', ['organisations', 'organisation'])
   },
   watch: {
     organisation (orgProfile) {

@@ -527,7 +527,7 @@ export default {
   },
   mounted () {
     this.setCodeWindowHeight()
-    this.$store.dispatch('builderConductorAdmin/initialise').then(() => this.$store.dispatch('builderKanban/initialise'))
+    this.$store.dispatch('builderKanban/initialise')
   }
 }
 </script>
