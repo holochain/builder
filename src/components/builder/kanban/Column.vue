@@ -1,6 +1,6 @@
 <template>
   <section id="column">
-    <v-card :width="minWidth" :color="isSelected ? 'grey darken-3' : 'grey lighten-1'" :class="isSelected ? 'pt-0' : 'pt-1'">
+    <v-card :width="minWidth" min-width="250" :color="isSelected ? 'grey darken-3' : 'grey lighten-1'" :class="isSelected ? 'pt-0' : 'pt-1'">
       <v-toolbar dense dark class="ml-1 mr-1">
         <v-toolbar-title>
           {{column.name}}

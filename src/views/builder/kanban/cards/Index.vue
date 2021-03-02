@@ -6,6 +6,7 @@
           :key="cwHeight"
           :style="`height: ${cwHeight}px; width: 100%;`"
           :gutterSize="2"
+          @onDragEnd="onDragEnd"
         >
           <split-area :size="20">
             <v-toolbar dense dark>
@@ -524,13 +525,20 @@ export default {
     updateSpecs (specs) {
       console.log(specs)
       this.specs = specs
+    },
+    onDragEnd (size) {
+      console.log('Drag End', size) // callback new size
+      const that = this
+      that.$nextTick(() => {
+        this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / 3.04
+      })
     }
   },
   mounted () {
     this.setCodeWindowHeight()
     const that = this
     that.$nextTick(() => {
-      this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / 3.05
+      this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / 3.04
     })
     this.$store.dispatch('builderKanban/initialise')
   }

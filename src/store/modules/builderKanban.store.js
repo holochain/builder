@@ -106,7 +106,6 @@ export default {
               payload: { parent: 'Cards' }
             })
             .then(result => {
-              console.log(result)
               if (result.cards.length === 0 && cards.length > 0) {
                 commit('setMigrate', true)
               } else {

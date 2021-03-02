@@ -1,5 +1,5 @@
 <template>
-  <v-card class="mx-auto pa-1" :width="minWidth">
+  <v-card class="mx-auto pa-1" :width="minWidth - 2" min-width="248" >
     <v-toolbar
       dense
       dark
