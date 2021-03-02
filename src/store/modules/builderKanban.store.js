@@ -106,22 +106,25 @@ export default {
               payload: { parent: 'Cards' }
             })
             .then(result => {
+              console.log('🚀 ~ file: builderKanban.store.js ~ line 109 ~ fetchCards ~ result', result)
               if (result.cards.length === 0 && cards.length > 0) {
                 commit('setMigrate', true)
               } else {
-                result.cards.forEach(committedEntry => {
-                  committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
-                  if (committedEntry.cardType === 'card') {
-                    const cardData = JSON.parse(committedEntry.cardData)
-                    committedEntry.description = cardData.description
-                    committedEntry.tags = cardData.tags
-                    committedEntry.reactions = cardData.reactions
-                    if (cardData.specs === undefined) cardData.specs = []
-                    committedEntry.specs = cardData.specs
-                  }
-                  state.db.cards.put(committedEntry)
+                state.db.cards.clear().then(() => {
+                  result.cards.forEach(committedEntry => {
+                    committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
+                    if (committedEntry.cardType === 'card') {
+                      const cardData = JSON.parse(committedEntry.cardData)
+                      committedEntry.description = cardData.description
+                      committedEntry.tags = cardData.tags
+                      committedEntry.reactions = cardData.reactions
+                      if (cardData.specs === undefined) cardData.specs = []
+                      committedEntry.specs = cardData.specs
+                    }
+                    state.db.cards.put(committedEntry)
+                  })
+                  commit('setCards', result.cards)
                 })
-                commit('setCards', result.cards)
               }
             })
             .catch(err => {
