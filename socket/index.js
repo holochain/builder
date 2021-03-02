@@ -670,7 +670,7 @@ io.on('connection', socket => {
       })
   })
 
-  socket.on('JOIN_ORGANISATION', (payload) => {
+  socket.on('JOIN_ORGANISATION', (payload, callback) => {
     var buf = Buffer.from(payload.data, 'gzip')
     fs.writeFileSync(`${allOrgsDir}/invite.tar.gz`, buf)
     const joinOrgCmd = `cd ${allOrgsDir} && tar -xf ${allOrgsDir}/invite.tar.gz`
@@ -682,7 +682,9 @@ io.on('connection', socket => {
         console.log('JOIN_ORGANISATION_STDOUT', data.toString())
       })
       orgJoiner.on('exit', function () {
-        console.log('JOIN_ORGANISATION_EXIT', orgInvitePackageDir)
+        const organisation = JSON.parse(fs.readFileSync(`${allOrgsDir}/org-details.json`))
+        callback(organisation)
+        console.log('JOIN_ORGANISATION_EXIT', organisation)
       })
   })
 })

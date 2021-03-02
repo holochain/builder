@@ -36,7 +36,7 @@ export default {
     },
     saveOrganisation ({ state, commit }, payload) {
       const organisation = payload
-      commit('setOrganisation', organisation)
+      commit('addOrganisation', organisation)
       state.db.organisations.put(organisation)
       // if (organisation.entryHash) {
       //   state.hcClient
@@ -77,9 +77,9 @@ export default {
     },
     createInvitePackage ({ state }, payload) {
       const organisation = payload.organisation
-      state.socket.emit('CREATE_INVITE_PACKAGE', { organisation })
+      state.socket.emit('CREATE_INVITE_PACKAGE', organisation)
     },
-    joinOrganisation ({ state }, payload) {
+    joinOrganisation ({ state, commit }, payload) {
       const invite = payload
       console.log(state)
       var reader = new FileReader()
@@ -87,17 +87,23 @@ export default {
       reader.onload = function (e) {
         rawData = e.target.result
         state.socket.emit('JOIN_ORGANISATION', { data: rawData }, (result) => {
-          // const organisation = result.organisation
           console.log(result)
-          // state.db.organisations.put(organisation)
-          // commit('setOrganisation', organisation)
+          const organisation = result.newOrg
+          console.log(organisation)
+          commit('addOrganisation', organisation)
+          state.db.organisations.put(organisation)
         })
-        console.log('Image content read.')
+        console.log('Invite package read')
       }
       reader.readAsArrayBuffer(invite)
     }
   },
   mutations: {
+    addOrganisation (state, payload) {
+      const organisation = payload
+      if (organisation !== undefined) state.organisation = organisation
+      state.organisations.push(organisation)
+    },
     setOrganisation (state, payload) {
       const organisation = payload
       if (organisation !== undefined) state.organisation = organisation
