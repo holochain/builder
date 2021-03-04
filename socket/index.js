@@ -2,7 +2,7 @@ require('dotenv').config()
 const server = require('http').createServer()
 const options = {}
 const SERVER_PORT = process.env.SERVER_PORT
-const builderOrg = process.env.ORGANISATION
+let builderOrg = process.env.ORGANISATION
 const allOrgsDir = `${__dirname.replace('builder/socket', '')}builder-organisations`
 const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
 const builderDnaDir = `${__dirname.replace('socket', 'dna')}`
@@ -683,6 +683,20 @@ io.on('connection', socket => {
       })
       orgJoiner.on('exit', function () {
         const organisation = JSON.parse(fs.readFileSync(`${allOrgsDir}/org-details.json`))
+        fs.mkdirSync(`${allOrgsDir}/${organisation.name}`, { recursive: true })
+        builderOrg = organisation.name
+        console.log(rootDir)
+        console.log(devPluginsDir)
+        console.log(orgInvitePackageDir)
+        if (!fs.existsSync(rootDir)) {
+          fs.mkdirSync(rootDir, { recursive: true })
+        }
+        if (!fs.existsSync(devPluginsDir)) {
+          fs.mkdirSync(devPluginsDir, { recursive: true })
+        }
+        if (!fs.existsSync(orgInvitePackageDir)) {
+          fs.mkdirSync(orgInvitePackageDir, { recursive: true })
+        }
         callback(organisation)
         console.log('JOIN_ORGANISATION_EXIT', organisation)
       })

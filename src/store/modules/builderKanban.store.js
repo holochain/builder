@@ -110,21 +110,19 @@ export default {
               if (result.cards.length === 0 && cards.length > 0) {
                 commit('setMigrate', true)
               } else {
-                state.db.cards.clear().then(() => {
-                  result.cards.forEach(committedEntry => {
-                    committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
-                    if (committedEntry.cardType === 'card') {
-                      const cardData = JSON.parse(committedEntry.cardData)
-                      committedEntry.description = cardData.description
-                      committedEntry.tags = cardData.tags
-                      committedEntry.reactions = cardData.reactions
-                      if (cardData.specs === undefined) cardData.specs = []
-                      committedEntry.specs = cardData.specs
-                    }
-                    state.db.cards.put(committedEntry)
-                  })
-                  commit('setCards', result.cards)
+                result.cards.forEach(committedEntry => {
+                  committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
+                  if (committedEntry.cardType === 'card') {
+                    const cardData = JSON.parse(committedEntry.cardData)
+                    committedEntry.description = cardData.description
+                    committedEntry.tags = cardData.tags
+                    committedEntry.reactions = cardData.reactions
+                    if (cardData.specs === undefined) cardData.specs = []
+                    committedEntry.specs = cardData.specs
+                  }
+                  state.db.cards.put(committedEntry)
                 })
+                commit('setCards', result.cards)
               }
             })
             .catch(err => {
