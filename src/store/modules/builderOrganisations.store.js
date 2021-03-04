@@ -53,9 +53,17 @@ export default {
         agent: 'handle'
       })
       dispatch('fetchOrganisations')
+      dispatch('fetchOrganisationMembers')
       state.socket = io(process.env.VUE_APP_SOCKET_URL)
       state.socket.on('CREATE_INVITE_PACKAGE_EXIT', data => {
         commit('setPackagePath', data)
+      })
+    },
+    fetchOrganisationMembers ({ state }) {
+      state.hcAdmin.requestAgentInfo({
+        cell_id: null
+      }).then(agents => {
+        console.log(agents)
       })
     },
     saveOrganisation ({ state, commit }, payload) {
@@ -63,13 +71,36 @@ export default {
       commit('addOrganisation', organisation)
       state.db.organisations.put(organisation)
     },
-    fetchOrganisations ({ state, commit }) {
+    fetchOrganisations ({ state, commit, dispatch }) {
       state.db.organisations.toArray(all => {
+        console.log(all)
+        if (all === undefined) {
+          const organisationUuid = uuidv4()
+          const newOrg = {
+            uuid: organisationUuid,
+            path: 'Organisations',
+            name: 'personal',
+            email: '',
+            billingContact: '',
+            billingAddress: '',
+            financialInstitution: '',
+            bsb: '',
+            account: ''
+          }
+          all = [newOrg]
+          dispatch('saveOrganisation', newOrg)
+          commit('setOrganisation', newOrg)
+          localStorage.setItem('currentOrganisationUuid', newOrg.uuid)
+          dispatch('installDnas', { newOrg })
+        }
         commit('setOrganisations', all)
       })
       const currentOrgUuid = localStorage.getItem('currentOrganisationUuid')
       if (currentOrgUuid !== undefined) {
         state.db.organisations.get({ uuid: currentOrgUuid }).then(org => {
+          state.socket.emit('SET_ORGANISATION', organisation, (result) => {
+            console.log(result)
+          })
           commit('setOrganisation', org)
         })
       }
@@ -139,6 +170,7 @@ export default {
           agent.cellData = cellIds
           commit('updateAgent', agent)
           state.db.agent.put(agent)
+          dispatch('fetchOrganisationMembers')
         })
       })
       const agent = state.agent

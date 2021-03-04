@@ -127,7 +127,7 @@ export default {
             })
             .catch(err => {
               console.log(err.data)
-              if (err.data.data.includes('CellMissing')) dispatch('builderConductorAdmin/cellMissing', null, { root: true })
+              if (err.data.data.includes('CellMissing')) dispatch('builderOrganisations/cellMissing', null, { root: true })
             })
         }
       })

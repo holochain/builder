@@ -650,6 +650,12 @@ io.on('connection', socket => {
       })
   })
 
+  socket.on('SET_ORGANISATION', (payload, callback) => {
+    const organisation = payload
+    builderOrg = organisation.name
+    callback(`Organisation root directory set to ${rootDir}`)
+  })
+
   socket.on('CREATE_INVITE_PACKAGE', (payload) => {
     fs.writeFile(`${orgInvitePackageDir}/org-details.json`, JSON.stringify(payload),
       err => {
