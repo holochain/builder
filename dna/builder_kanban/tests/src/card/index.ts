@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import * as path from 'path'
 
 const delay = ms => new Promise(r => setTimeout(r, ms))
-const builderKanbanDna = path.join(__dirname, '../../../builder_kanban.dna.gz')
+const builderKanbanDna = path.join(__dirname, '../../../../builder_kanban.dna')
 console.log('builderKanbanDna', builderKanbanDna)
 
 const installation: InstallAgentsHapps = [
@@ -26,7 +26,7 @@ const cardData1 = {
 const cardData2 = { parentColumn: '/', name: 'Card 2', cardData: '', uuid: uuidv4(), cardType: 'card', order: 1, parent: 'Cards' }
 
 module.exports = (orchestrator) => {
-  orchestrator.registerScenario('Create a card', async (s, t) => {
+  orchestrator.registerScenario.only('Create a card', async (s, t) => {
     const [alice] = await s.players([conductorConfig])
     const [[alice_kanban_happ]] = await alice.installAgentsHapps(installation)
     const card = await alice_kanban_happ.cells[0].call('builder_kanban', 'create_card', cardData1)

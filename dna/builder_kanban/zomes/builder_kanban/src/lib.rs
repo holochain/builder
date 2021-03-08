@@ -1,6 +1,6 @@
 use entries::card;
-use hdk3::prelude::Path;
-use hdk3::prelude::*;
+use hdk::prelude::Path;
+use hdk::prelude::*;
 use card::{CardEntry, Card, CardListInput, CardList};
 
 mod entries;

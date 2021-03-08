@@ -1,4 +1,4 @@
-use hdk3::prelude::*;
+use hdk::prelude::*;
 use crate::{
     error::TaggerResult
 };
@@ -10,15 +10,17 @@ pub mod handlers;
 #[derive(Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TagEntry {
+    organisation_uuid: String,
     uuid: String,
     tag_text: String,
     color: String,
     parent: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SerializedBytes)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
+    organisation_uuid: String,
     uuid: String,
     tag_text: String,
     color: String,
@@ -27,13 +29,13 @@ pub struct Tag {
 }
 
 /// Input to the list tags call
-#[derive(Debug, Serialize, Deserialize, SerializedBytes)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TagListInput {
     parent: String,
 }
 
 /// The tags returned from list tags
-#[derive(Debug, Serialize, Deserialize, SerializedBytes, derive_more::From)]
+#[derive(Debug, Serialize, Deserialize, derive_more::From)]
 pub struct TagList {
     tags: Vec<Tag>,
 }
@@ -41,6 +43,7 @@ pub struct TagList {
 impl Tag {
     pub fn new(entry: TagEntry, entry_hash: EntryHash) -> TaggerResult<Tag> {
         Ok(Tag{
+            organisation_uuid: entry.organisation_uuid,
             uuid: entry.uuid,
             tag_text: entry.tag_text,
             color: entry.color,

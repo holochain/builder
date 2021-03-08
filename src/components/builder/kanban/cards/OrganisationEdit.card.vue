@@ -104,7 +104,7 @@ import { mapActions } from 'vuex'
 import { v4 as uuidv4 } from 'uuid'
 export default {
   name: 'OrganisationEdit',
-  props: ['orgProfile'],
+  props: ['orgProfile', 'action'],
   data () {
     return {
       uploadedFile: [],
@@ -125,22 +125,21 @@ export default {
   },
   methods: {
     ...mapActions('builderOrganisations', ['saveOrganisation']),
-    ...mapActions('builderKanban', ['saveCard']),
+    // ...mapActions('builderKanban', ['saveCard']),
     save () {
+      console.log(this.action)
       this.internalOrgProfile.logo = this.internalOrgProfileLogo
-      this.saveOrganisation(this.internalOrgProfile)
-      const card = {
-        uuid: this.internalOrgProfile.uuid,
-        name: this.internalOrgProfile.name,
-        preview: this.internalOrgProfileLogo,
-        parentColumn: 'root',
-        cardType: 'column',
-        parent: 'Cards',
-        order: 0
-      }
-      this.saveCard({ card })
+      this.saveOrganisation({ organisation: this.internalOrgProfile, action: this.action })
+      // const card = {
+      //   uuid: this.internalOrgProfile.uuid,
+      //   name: this.internalOrgProfile.name,
+      //   parentColumn: 'root',
+      //   cardType: 'column',
+      //   parent: 'Cards',
+      //   order: 0
+      // }
+      // this.saveCard({ card })
       this.$emit('close')
-      localStorage.setItem('currentOrganisationUuid', this.internalOrgProfile.uuid)
     }
   },
   watch: {
@@ -154,11 +153,10 @@ export default {
         this.internalOrgProfileLogo = e.target.result
       }
       reader.readAsDataURL(fileToUpload)
-    }
-  },
-  mounted () {
-    if (this.orgProfile) {
-      this.internalOrgProfile = { ...this.orgProfile }
+    },
+    orgProfile (profile) {
+      console.log(profile)
+      this.internalOrgProfile = { ...profile }
       this.internalOrgProfileLogo = this.internalOrgProfile.logo
     }
   }

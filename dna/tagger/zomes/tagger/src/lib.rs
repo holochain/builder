@@ -1,6 +1,6 @@
 use entries::tag;
-use hdk3::prelude::Path;
-use hdk3::prelude::*;
+use hdk::prelude::Path;
+use hdk::prelude::*;
 use tag::{TagEntry, Tag, TagListInput, TagList};
 
 mod entries;

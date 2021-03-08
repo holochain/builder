@@ -1,0 +1,8 @@
+---
+manifest_version: "1"
+name: builder_kanban
+uuid: 65ba2608-5f08-4e6e-bd5e-ab495b21a6a4
+properties: ~
+zomes:
+  - name: builder_kanban
+    bundled: "target/wasm32-unknown-unknown/release/builder_kanban.wasm"

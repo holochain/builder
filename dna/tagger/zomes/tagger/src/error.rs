@@ -1,4 +1,4 @@
-use hdk3::prelude::*;
+use hdk::prelude::*;
 use std::convert::Infallible;
 
 #[derive(thiserror::Error, Debug)]
@@ -29,6 +29,6 @@ pub type TaggerResult<T> = Result<T, TaggerError>;
 
 impl From<TaggerError> for WasmError {
     fn from(c: TaggerError) -> Self {
-        WasmError::Zome(c.to_string())
+        WasmError::Guest(c.to_string())
     }
 }

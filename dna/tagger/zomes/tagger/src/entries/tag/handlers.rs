@@ -2,7 +2,7 @@ use crate::{
     tag::{Tag, TagEntry},
     error::TaggerResult,
 };
-use hdk3::prelude::*;
+use hdk::prelude::*;
 
 use super::{TagList, TagListInput};
 

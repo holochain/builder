@@ -2,7 +2,7 @@ use crate::{
     card::{Card, CardEntry},
     error::BuilderKanbanResult,
 };
-use hdk3::prelude::*;
+use hdk::prelude::*;
 
 use super::{CardList, CardListInput};
 

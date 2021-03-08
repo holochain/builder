@@ -1,4 +1,4 @@
-use hdk3::prelude::*;
+use hdk::prelude::*;
 use crate::{
     error::BuilderKanbanResult
 };
@@ -19,7 +19,7 @@ pub struct CardEntry {
     parent: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, SerializedBytes)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Card {
     uuid: String,
@@ -33,13 +33,13 @@ pub struct Card {
 }
 
 /// Input to the list cards call
-#[derive(Debug, Serialize, Deserialize, SerializedBytes)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CardListInput {
     parent: String,
 }
 
 /// The cards returned from list cards
-#[derive(Debug, Serialize, Deserialize, SerializedBytes, derive_more::From)]
+#[derive(Debug, Serialize, Deserialize, derive_more::From)]
 pub struct CardList {
     cards: Vec<Card>,
 }

@@ -98,6 +98,7 @@ export default {
         const newTag = selectedTags.find(t => t.uuid === undefined)
         if (newTag !== undefined) {
           const tag = {
+            organisationUuid: localStorage.getItem('currentOrganisationUuid'),
             uuid: uuidv4(),
             tagText: newTag,
             color: this.color(newTag)
@@ -133,6 +134,7 @@ export default {
       } else {
         this.editing = null
         this.index = -1
+        tag.organisationUuid = localStorage.getItem('currentOrganisationUuid')
         this.updateTag({ tag })
       }
     },

@@ -88,19 +88,6 @@
                 </template>
                 <span>Open Organisation Details</span>
               </v-tooltip>
-              <v-tooltip bottom>
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn
-                    icon
-                    @click="createInvitePackage({ organisation })"
-                    dark
-                    v-bind="attrs"
-                    v-on="on">
-                    <v-icon>mdi-package-variant-closed</v-icon>
-                  </v-btn>
-                </template>
-                <span>Create Organisation Invite Package</span>
-              </v-tooltip>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -123,7 +110,7 @@
         </v-system-bar>
         <v-card-text>
           <v-file-input
-            v-if="joinOrganisation"
+            v-if="join"
             v-model="uploadedFile"
             accept="application/x-gzip"
             label="Upload invite package"
@@ -141,6 +128,7 @@
           <organisation-edit
             :key="orgProfile.uuid"
             :orgProfile="orgProfile"
+            :action="action"
             @close="orgDrawerOpen = false; join = false"/>
         </v-card-text>
       </v-card>
@@ -148,7 +136,7 @@
   </v-card>
 </template>
 <script>
-import { mapState, mapActions } from 'vuex'
+import { mapState, mapActions, mapMutations } from 'vuex'
 import { v4 as uuidv4 } from 'uuid'
 export default {
   name: 'Organisations',
@@ -169,6 +157,7 @@ export default {
       bsb: '',
       account: ''
     },
+    action: 'create',
     join: false,
     uploadedFile: []
   }),
@@ -176,9 +165,11 @@ export default {
     ...mapState('builderOrganisations', ['organisations', 'organisation', 'agent'])
   },
   methods: {
-    ...mapActions('builderOrganisations', ['createInvitePackage', 'joinOrganisation', 'installDnas']),
+    ...mapActions('builderOrganisations', ['changeOrganisation', 'joinOrganisation', 'installDnas']),
+    ...mapMutations('builderOrganisations', ['setOrganisation']),
     openOrganisationDetails (org) {
       this.orgProfile = { ...org }
+      this.action = 'update'
       this.orgDrawerOpen = true
     },
     newOrganisation () {
@@ -194,14 +185,17 @@ export default {
         bsb: '',
         account: ''
       }
+      this.action = 'create'
       this.orgDrawerOpen = true
     },
     goToDeveloper (organisation) {
-      localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+      this.changeOrganisation(organisation)
+      this.setOrganisation(organisation)
       this.$router.push('/builder/developer')
     },
     goToKanban (organisation) {
-      localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+      this.changeOrganisation(organisation)
+      this.setOrganisation(organisation)
       this.$router.push('/builder/kanban')
     }
   },
@@ -211,12 +205,12 @@ export default {
     },
     uploadedFile (invitePackage) {
       this.joinOrganisation(invitePackage)
+      this.orgDrawerOpen = false
     }
   },
   created () {
     this.orgProfile = { ...this.organisation }
-    this.$store.dispatch('builderOrganisations/initialise')
-    this.$store.dispatch('builderKanban/initialise')
+    this.$store.dispatch('builderKanban/initialise').then(() => this.$store.dispatch('builderOrganisations/initialise'))
   }
 }
 </script>

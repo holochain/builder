@@ -8,6 +8,22 @@ const HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_HOLOCH
 
 Vue.use(Vuex)
 
+function getAgentPubKey () {
+  const organisationUuid = localStorage.getItem('currentOrganisationUuid')
+  const agentPubKey = base64.base64ToBytes(decodeURIComponent(localStorage.getItem(`${organisationUuid}-agentPubKey`)))
+  if (agentPubKey) return agentPubKey
+  return ''
+}
+function getCellId () {
+  const organisationUuid = localStorage.getItem('currentOrganisationUuid')
+  const agentPubKey = base64.base64ToBytes(decodeURIComponent(localStorage.getItem(`${organisationUuid}-agentPubKey`)))
+  console.log(`${organisationUuid}-builder_kanbanCellId`)
+  console.log(localStorage.getItem(`${organisationUuid}-builder_kanbanCellId`))
+  const cellId = base64.base64ToBytes(decodeURIComponent(localStorage.getItem(`${organisationUuid}-builder_kanbanCellId`)))
+  console.log([cellId, agentPubKey])
+  if (cellId) return [cellId, agentPubKey]
+  return ''
+}
 function batchSaveCards (hcClient, builderKanbanCellId, agentPubKey, cards, cardIndex) {
   const cardToMigrate = { ...cards[cardIndex] }
   if (cardToMigrate.cardType === 'column') {
@@ -16,16 +32,18 @@ function batchSaveCards (hcClient, builderKanbanCellId, agentPubKey, cards, card
     if (cardToMigrate.description === undefined) cardToMigrate.description = ''
     if (cardToMigrate.tags === undefined) cardToMigrate.tags = []
     if (cardToMigrate.reactions === undefined) cardToMigrate.reaction = []
+    if (cardToMigrate.specs === undefined) cardToMigrate.specs = []
     const cardData = {
       description: cardToMigrate.description,
       tags: cardToMigrate.tags,
-      reactions: cardToMigrate.reactions
+      reactions: cardToMigrate.reactions,
+      specs: cardToMigrate.specs
     }
     cardToMigrate.cardData = JSON.stringify(cardData)
   }
   hcClient.callZome({
     cap: null,
-    cell_id: [builderKanbanCellId, agentPubKey],
+    cell_id: builderKanbanCellId,
     zome_name: 'builder_kanban',
     fn_name: 'create_card',
     provenance: agentPubKey,
@@ -55,7 +73,7 @@ export default {
     migrate: false
   },
   actions: {
-    async initialise ({ state, commit, dispatch }) {
+    initialise ({ state, commit }) {
       state.db = new Dexie('builderKanban')
       state.db.version(1).stores({
         cards: 'uuid,[parentColumn+name],parentColumn'
@@ -63,17 +81,6 @@ export default {
       AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
         .then(socket => {
           commit('hcClient', socket)
-          if (localStorage.getItem('currentOrganisationUuid')) {
-            const organisationUuid = localStorage.getItem('currentOrganisationUuid')
-            if (localStorage.getItem(`${organisationUuid}-agentPubKey`)) commit('agentPubKey', base64.base64ToBytes(decodeURIComponent(localStorage.getItem(`${organisationUuid}-agentPubKey`))))
-            if (localStorage.getItem(`${organisationUuid}-builderKanbanCellId`)) {
-              const builderKanbanCellId = localStorage.getItem(`${organisationUuid}-builderKanbanCellId`)
-              if (builderKanbanCellId) {
-                commit('builderKanbanCellId', base64.base64ToBytes(decodeURIComponent(builderKanbanCellId)))
-              }
-            }
-            dispatch('fetchCards')
-          }
         })
         .catch(err => console.log('hcClient', err))
     },
@@ -95,35 +102,38 @@ export default {
     fetchCards ({ state, commit, dispatch }) {
       state.db.cards.toArray(cards => {
         commit('setCards', cards)
-        if (state.builderKanbanCellId !== '') {
+        if (getCellId() !== '') {
           state.hcClient
             .callZome({
               cap: null,
-              cell_id: [state.builderKanbanCellId, state.agentPubKey],
+              cell_id: getCellId(),
               zome_name: 'builder_kanban',
               fn_name: 'list_cards',
-              provenance: state.agentPubKey,
+              provenance: getAgentPubKey(),
               payload: { parent: 'Cards' }
             })
             .then(result => {
-              console.log('🚀 ~ file: builderKanban.store.js ~ line 109 ~ fetchCards ~ result', result)
-              if (result.cards.length === 0 && cards.length > 0) {
-                commit('setMigrate', true)
-              } else {
-                result.cards.forEach(committedEntry => {
-                  committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
-                  if (committedEntry.cardType === 'card') {
-                    const cardData = JSON.parse(committedEntry.cardData)
-                    committedEntry.description = cardData.description
-                    committedEntry.tags = cardData.tags
-                    committedEntry.reactions = cardData.reactions
-                    if (cardData.specs === undefined) cardData.specs = []
-                    committedEntry.specs = cardData.specs
-                  }
-                  state.db.cards.put(committedEntry)
-                })
-                commit('setCards', result.cards)
-              }
+              console.log('🚀 result', result)
+              state.db.cards.where('parentColumn').equals(localStorage.getItem('currentOrganisationUuid')).toArray(migrateCards => {
+                console.log(migrateCards)
+                if (result.cards.length === 1 && migrateCards.length > 0) {
+                  commit('setMigrate', true)
+                } else {
+                  result.cards.forEach(committedEntry => {
+                    committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
+                    if (committedEntry.cardType === 'card') {
+                      const cardData = JSON.parse(committedEntry.cardData)
+                      committedEntry.description = cardData.description
+                      committedEntry.tags = cardData.tags
+                      committedEntry.reactions = cardData.reactions
+                      if (cardData.specs === undefined) cardData.specs = []
+                      committedEntry.specs = cardData.specs
+                    }
+                    state.db.cards.put(committedEntry)
+                  })
+                  commit('setCards', result.cards)
+                }
+              })
             })
             .catch(err => {
               console.log(err.data)
@@ -160,23 +170,24 @@ export default {
         state.hcClient
           .callZome({
             cap: null,
-            cell_id: [state.builderKanbanCellId, state.agentPubKey],
+            cell_id: getCellId(),
             zome_name: 'builder_kanban',
             fn_name: 'delete_card',
-            provenance: state.agentPubKey,
+            provenance: getAgentPubKey(),
             payload: card
           })
       }
       state.hcClient
         .callZome({
           cap: null,
-          cell_id: [state.builderKanbanCellId, state.agentPubKey],
+          cell_id: getCellId(),
           zome_name: 'builder_kanban',
           fn_name: 'create_card',
-          provenance: state.agentPubKey,
+          provenance: getAgentPubKey(),
           payload: card
         })
         .then(committedEntry => {
+          console.log(committedEntry)
           committedEntry.entryHash = base64.bytesToBase64(committedEntry.entryHash)
           if (committedEntry.cardType === 'card') {
             const cardData = JSON.parse(committedEntry.cardData)
@@ -199,16 +210,16 @@ export default {
       state.hcClient
         .callZome({
           cap: null,
-          cell_id: [state.builderKanbanCellId, state.agentPubKey],
+          cell_id: getCellId(),
           zome_name: 'builder_kanban',
           fn_name: 'delete_card',
-          provenance: state.agentPubKey,
+          provenance: getAgentPubKey(),
           payload: card
         })
         .then(result => console.log(result))
     },
     migrateIndexDbToHolochain ({ state }) {
-      batchSaveCards(state.hcClient, state.builderKanbanCellId, state.agentPubKey, state.cards, 0)
+      batchSaveCards(state.hcClient, getCellId(), getAgentPubKey(), state.cards, 0)
     }
   },
   mutations: {

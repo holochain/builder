@@ -40,6 +40,7 @@ export default {
       AdminWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT}`)
         .then(socket => {
           commit('hcAdmin', socket)
+          dispatch('fetchOrganisationMembers')
         })
         .catch(err => console.log('hcAdmin', err))
       AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
@@ -53,30 +54,40 @@ export default {
         agent: 'handle'
       })
       dispatch('fetchOrganisations')
-      dispatch('fetchOrganisationMembers')
       state.socket = io(process.env.VUE_APP_SOCKET_URL)
-      state.socket.on('CREATE_INVITE_PACKAGE_EXIT', data => {
-        commit('setPackagePath', data)
-      })
     },
     fetchOrganisationMembers ({ state }) {
-      state.hcAdmin.requestAgentInfo({
-        cell_id: null
-      }).then(agents => {
+      state.hcAdmin.requestAgentInfo({ cell_id: null }).then(agents => {
         console.log(agents)
       })
     },
-    saveOrganisation ({ state, commit }, payload) {
-      const organisation = payload
-      commit('addOrganisation', organisation)
+    saveOrganisation ({ state, commit, dispatch }, payload) {
+      const organisation = payload.organisation
+      const action = payload.action
+      localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+      if (action === 'create') {
+        commit('addOrganisation', organisation)
+        state.socket.emit('CREATE_INVITE_PACKAGE', organisation, (happPath) => {
+          console.log(happPath)
+          dispatch('installDnas', { organisation, happPath })
+        })
+      } else {
+        commit('updateOrganisation', organisation)
+      }
       state.db.organisations.put(organisation)
     },
+    changeOrganisation ({ state }, payload) {
+      const organisation = payload
+      localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+      state.socket.emit('SET_ORGANISATION', organisation, (result) => {
+        console.log(result)
+      })
+    },
     fetchOrganisations ({ state, commit, dispatch }) {
-      state.db.organisations.toArray(all => {
-        console.log(all)
-        if (all === undefined) {
+      state.db.organisations.toArray(allOrganisations => {
+        if (allOrganisations.length === 0) {
           const organisationUuid = uuidv4()
-          const newOrg = {
+          const organisation = {
             uuid: organisationUuid,
             path: 'Organisations',
             name: 'personal',
@@ -87,27 +98,30 @@ export default {
             bsb: '',
             account: ''
           }
-          all = [newOrg]
-          dispatch('saveOrganisation', newOrg)
-          commit('setOrganisation', newOrg)
-          localStorage.setItem('currentOrganisationUuid', newOrg.uuid)
-          dispatch('installDnas', { newOrg })
+          allOrganisations = [organisation]
+          dispatch('saveOrganisation', { organisation, action: 'create' })
+        } else {
+          const currentOrgUuid = localStorage.getItem('currentOrganisationUuid')
+          if (currentOrgUuid !== undefined) {
+            state.db.organisations.get({ uuid: currentOrgUuid }).then(org => {
+              if (org !== null) {
+                state.socket.emit('SET_ORGANISATION', org, (result) => {
+                  console.log(result)
+                })
+                commit('setOrganisation', org)
+              }
+            })
+          } else {
+            const org = allOrganisations[0]
+            state.socket.emit('SET_ORGANISATION', org, (result) => {
+              console.log(result)
+            })
+            localStorage.setItem('currentOrganisationUuid', org.uuid)
+            commit('setOrganisation', org)
+          }
         }
-        commit('setOrganisations', all)
+        commit('setOrganisations', allOrganisations)
       })
-      const currentOrgUuid = localStorage.getItem('currentOrganisationUuid')
-      if (currentOrgUuid !== undefined) {
-        state.db.organisations.get({ uuid: currentOrgUuid }).then(org => {
-          state.socket.emit('SET_ORGANISATION', organisation, (result) => {
-            console.log(result)
-          })
-          commit('setOrganisation', org)
-        })
-      }
-    },
-    createInvitePackage ({ state }, payload) {
-      const organisation = payload.organisation
-      state.socket.emit('CREATE_INVITE_PACKAGE', organisation)
     },
     joinOrganisation ({ state, commit, dispatch }, payload) {
       const invite = payload
@@ -116,75 +130,58 @@ export default {
       reader.onload = function (e) {
         rawData = e.target.result
         state.socket.emit('JOIN_ORGANISATION', { data: rawData }, (result) => {
-          const organisation = result
-          console.log(organisation)
+          const organisation = result.organisation
+          const happPath = result.happPath
+          console.log(result)
           commit('addOrganisation', organisation)
           state.db.organisations.put(organisation)
-          const dnas = []
-          dnas.push({
-            path: '../../builder-organisations/builder_kanban.dna.gz',
-            nick: 'builderKanban'
-          })
-          dnas.push({
-            path: '../../builder-organisations/tagger.dna.gz',
-            nick: 'tagger'
-          })
-          dispatch('installDnas', { organisation, dnas })
+          localStorage.setItem('currentOrganisationUuid', organisation.uuid)
+          dispatch('installDnas', { organisation, happPath })
         })
         console.log('Invite package read')
       }
       reader.readAsArrayBuffer(invite)
     },
-    installDnas ({ state, commit }, payload) {
+    installDnas ({ state, commit, dispatch }, payload) {
       const organisation = payload.organisation
       localStorage.setItem('currentOrganisationUuid', organisation.uuid)
-      let dnas = []
-      if (payload.dnas === undefined) {
-        dnas.push({
-          path: '../../builder/dna/builder_kanban/builder_kanban.dna.gz',
-          nick: 'builderKanban'
-        })
-        dnas.push({
-          path: '../../builder/dna/tagger/tagger.dna.gz',
-          nick: 'tagger'
-        })
-      } else {
-        dnas = payload.dnas
+      let happPath = '/Users/philipbeadle/holochain/builder/dna.happ'
+      if (payload.happPath !== undefined) {
+        happPath = payload.happPath
       }
-      console.log(dnas)
+      console.log(happPath)
       state.hcAdmin.generateAgentPubKey().then(agentPubKey => {
         localStorage.setItem(`${organisation.uuid}-agentPubKey`, `${encodeURIComponent(base64.bytesToBase64(agentPubKey))}`)
         const appId = organisation.uuid
-        state.hcAdmin.installApp({
+        state.hcAdmin.installAppBundle({
           installed_app_id: appId,
           agent_key: agentPubKey,
-          dnas
+          path: happPath,
+          membrane_proofs: {}
         }).then(app => {
-          console.log(app.cell_data)
-          state.hcAdmin.activateApp({ installed_app_id: appId })
-          const cellIds = []
-          app.cell_data.forEach(cell => {
-            cellIds[cell[1]] = `${encodeURIComponent(base64.bytesToBase64(cell[0][0]))}`
-            localStorage.setItem(`${organisation.uuid}-${cell[1]}CellId`, `${encodeURIComponent(base64.bytesToBase64(cell[0][0]))}`)
+          console.log(app)
+          Object.keys(app.slots).forEach(key => {
+            console.log(`${key}CellId`, encodeURIComponent(base64.bytesToBase64(app.slots[key].base_cell_id[0])))
+            localStorage.setItem(`${organisation.uuid}-${key}CellId`, encodeURIComponent(base64.bytesToBase64(app.slots[key].base_cell_id[0])))
           })
-          agent.cellData = cellIds
-          commit('updateAgent', agent)
-          state.db.agent.put(agent)
-          dispatch('fetchOrganisationMembers')
-        })
+          state.hcAdmin.activateApp({ installed_app_id: appId })
+          const card = {
+            uuid: organisation.uuid,
+            name: organisation.name,
+            parentColumn: 'root',
+            cardType: 'column',
+            parent: 'Cards',
+            order: 0
+          }
+          dispatch('builderKanban/saveCard', { card, action: 'create' }, { root: true })
+        }).catch(err => { console.log(err) })
+        // agent.cellData = cellIds
+        // commit('updateAgent', agent)
+        // state.db.agent.put(agent)
+        // dispatch('fetchOrganisationMembers')
       })
-      const agent = state.agent
     },
-    cellMissing ({ state, commit }) {
-      const agent = state.agent
-      localStorage.removeItem('agentPubKey')
-      agent.cellData.forEach(cell => {
-        localStorage.removeItem(`${cell[1]}CellId`)
-      })
-      delete agent.agentPubKey
-      delete agent.cellData
-      commit('updateAgent', agent)
-      state.db.agent.put(agent)
+    cellMissing () {
     },
     saveAgent ({ state, commit }, payload) {
       const agent = payload.agent
@@ -214,6 +211,12 @@ export default {
     },
     setOrganisations (state, payload) {
       state.organisations = payload
+    },
+    updateOrganisation (state, payload) {
+      state.organisations = state.organisations.map(org =>
+        org.uuid !== payload.uuid ? org : { ...org, ...payload }
+      )
+      state.organisation = payload
     },
     setPackagePath  (state, payload) {
       state.organisationPackagePath = payload

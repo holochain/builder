@@ -3,11 +3,11 @@ const server = require('http').createServer()
 const options = {}
 const SERVER_PORT = process.env.SERVER_PORT
 let builderOrg = process.env.ORGANISATION
-const allOrgsDir = `${__dirname.replace('builder/socket', '')}builder-organisations`
-const devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
-const builderDnaDir = `${__dirname.replace('socket', 'dna')}`
-const orgInvitePackageDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/invite-package`
-const devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
+let allOrgsDir = `${__dirname.replace('builder/socket', '')}builder-organisations`
+let devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
+let builderDnaDir = `${__dirname.replace('socket', 'dna')}`
+let devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
+let orgInvitePackageDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/invite-package`
 let rootDir = devAppsDir
 const io = require('socket.io')(server, options)
 const fs = require('fs')
@@ -653,17 +653,38 @@ io.on('connection', socket => {
   socket.on('SET_ORGANISATION', (payload, callback) => {
     const organisation = payload
     builderOrg = organisation.name
+    allOrgsDir = `${__dirname.replace('builder/socket', '')}builder-organisations`
+    devAppsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/applications`
+    builderDnaDir = `${__dirname.replace('socket', 'dna')}`
+    orgInvitePackageDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/invite-package`
+    devPluginsDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${builderOrg}/plugins`
+    rootDir = devAppsDir
+    if (!fs.existsSync(rootDir)) {
+      fs.mkdirSync(rootDir, { recursive: true })
+    }
+    if (!fs.existsSync(devPluginsDir)) {
+      fs.mkdirSync(devPluginsDir, { recursive: true })
+    }
+    if (!fs.existsSync(orgInvitePackageDir)) {
+      fs.mkdirSync(orgInvitePackageDir, { recursive: true })
+    }
     callback(`Organisation root directory set to ${rootDir}`)
   })
 
-  socket.on('CREATE_INVITE_PACKAGE', (payload) => {
-    fs.writeFile(`${orgInvitePackageDir}/org-details.json`, JSON.stringify(payload),
+  socket.on('CREATE_INVITE_PACKAGE', (payload, callback) => {
+    const organisation = payload
+    orgInvitePackageDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${organisation.name}/invite-package`
+    if (!fs.existsSync(orgInvitePackageDir)) {
+      fs.mkdirSync(orgInvitePackageDir, { recursive: true })
+    }
+    fs.writeFile(`${orgInvitePackageDir}/org-details.json`, JSON.stringify(organisation),
       err => {
         if (err) throw err
         console.log(`${orgInvitePackageDir}/org-details.json has been saved!`)
       }
     )
-    const createInviteCmd = `cd ${builderDnaDir} && find . -type f \\( -iname "*.dna.gz" ! -iname "test.dna.gz" \\) |  xargs  -I _ cp _ ${orgInvitePackageDir} && cd  ${orgInvitePackageDir} && tar -cvzf invite.tar.gz .`
+    const builderRootDir = `${__dirname.replace('socket', '')}`
+    const createInviteCmd = `cd ${builderDnaDir} && grep -rl --exclude-dir={node_modules,target,tests,zomes} 'uuid: organisation.uuid' . | xargs sed -i "" 's/uuid: organisation.uuid/uuid: ${organisation.uuid}/g' && hc dna pack builder_kanban && hc dna pack tagger && hc app pack . && mv ${builderRootDir}/dna.happ ${orgInvitePackageDir}/dna.happ && cd ${orgInvitePackageDir} && tar -cvzf invite.tar.gz .`
       const inviteCreator = spawn(createInviteCmd, { shell: true })
       inviteCreator.stderr.on('data', function (err) {
         console.log('CREATE_INVITE_PACKAGE_ERROR', err.toString())
@@ -673,6 +694,7 @@ io.on('connection', socket => {
       })
       inviteCreator.on('exit', function () {
         console.log('CREATE_INVITE_PACKAGE_EXIT', orgInvitePackageDir)
+        callback(`${orgInvitePackageDir}/dna.happ`)
       })
   })
 
@@ -703,8 +725,11 @@ io.on('connection', socket => {
         if (!fs.existsSync(orgInvitePackageDir)) {
           fs.mkdirSync(orgInvitePackageDir, { recursive: true })
         }
-        callback(organisation)
-        console.log('JOIN_ORGANISATION_EXIT', organisation)
+        fs.renameSync(`${allOrgsDir}/invite.tar.gz`, `${orgInvitePackageDir}/invite.tar.gz`)
+        fs.renameSync(`${allOrgsDir}/org-details.json`, `${orgInvitePackageDir}/org-details.json`)
+        fs.renameSync(`${allOrgsDir}/dna.happ`, `${orgInvitePackageDir}/dna.happ`)
+        callback({ organisation, happPath })
+        console.log('JOIN_ORGANISATION_EXIT', organisation, happPath)
       })
   })
 })

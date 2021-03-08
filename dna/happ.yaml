@@ -1,0 +1,25 @@
+---
+manifest_version: "1"
+name: builder
+description: "Source Control, Kanban & Tagger for Builder"
+slots:
+  - id: builder_kanban
+    provisioning: 
+      strategy: create
+      deferred: false
+    dna:
+      bundled: builder_kanban.dna
+      properties: ~
+      uuid: 65ba2608-5f08-4e6e-bd5e-ab495b21a6a4
+      version: ~
+      clone_limit: 0
+  - id: tagger
+    provisioning: 
+      strategy: create
+      deferred: false
+    dna:
+      bundled: tagger.dna
+      properties: ~
+      uuid: 65ba2608-5f08-4e6e-bd5e-ab495b21a6a4
+      version: ~
+      clone_limit: 0

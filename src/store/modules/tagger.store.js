@@ -64,7 +64,7 @@ export default {
         .catch(err => console.log('hcClient', err))
     },
     fetchTags ({ state, commit, dispatch }) {
-      state.db.tags.toArray(tags => {
+      state.db.tags.where('organisationUuid').equals(localStorage.getItem('currentOrganisationUuid')).toArray(tags => {
         if (tags !== undefined && tags !== null) commit('setTags', tags)
         if (state.taggerCellId !== '') {
           state.hcClient
@@ -77,6 +77,7 @@ export default {
               payload: { parent: 'Tags' }
             })
             .then(result => {
+              console.log(result)
               if (result.tags.length === 0 && tags.length > 0) {
                 commit('setMigrate', true)
               } else {

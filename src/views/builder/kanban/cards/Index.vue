@@ -549,6 +549,9 @@ export default {
     that.$nextTick(() => {
       this.columnWidth = this.$refs.columnsSplit.$el.clientWidth / this.columnWidthFactor
     })
+    this.$store.dispatch('builderKanban/fetchCards')
+  },
+  created () {
     this.$store.dispatch('builderKanban/initialise')
   }
 }
