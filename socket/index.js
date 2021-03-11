@@ -671,6 +671,7 @@ io.on('connection', socket => {
     callback(`Organisation root directory set to ${rootDir}`)
   })
 
+  
   socket.on('CREATE_INVITE_PACKAGE', (payload, callback) => {
     const organisation = payload
     orgInvitePackageDir = `${__dirname.replace('builder/socket', '')}builder-organisations/${organisation.name}/invite-package`

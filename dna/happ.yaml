@@ -10,7 +10,7 @@ slots:
     dna:
       bundled: builder_kanban.dna
       properties: ~
-      uuid: 65ba2608-5f08-4e6e-bd5e-ab495b21a6a4
+      uuid: 548464e6-4f25-4fea-b531-9ba2e0ee8c67
       version: ~
       clone_limit: 0
   - id: tagger
@@ -20,6 +20,6 @@ slots:
     dna:
       bundled: tagger.dna
       properties: ~
-      uuid: 65ba2608-5f08-4e6e-bd5e-ab495b21a6a4
+      uuid: 548464e6-4f25-4fea-b531-9ba2e0ee8c67
       version: ~
       clone_limit: 0

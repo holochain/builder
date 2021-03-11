@@ -43,8 +43,8 @@ export default {
   actions: {
     initialise ({ state, commit, dispatch }) {
       state.db = new Dexie('tagger')
-      state.db.version(1).stores({
-        tags: 'uuid,tagText'
+      state.db.version(2).stores({
+        tags: 'uuid,tagText,organisationUuid'
       })
       AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
         .then(socket => {

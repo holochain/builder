@@ -1,135 +1,129 @@
 <template>
-  <v-container
-    id="home"
-    class="fill-height text-center"
-    tag="section"
-  >
-    <v-row justify="center">
-      <v-col
-        class="mb-4"
-        cols="auto"
-      >
-        <span class="headline font-weight-light">Vuetify</span>
-
-        <h1 class="display-4 font-weight-black mb-6">
-          Base Preset
-        </h1>
-
-        <v-img
-          class="mx-auto mb-10"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-light.png"
-          width="196"
-        />
-
-        <h2 class="body-2 font-weight-black">
-          Important Links
-        </h2>
-
-        <v-responsive
-          class="mx-auto my-4"
-          max-width="60"
-        >
-          <v-divider />
-        </v-responsive>
-
-        <v-responsive
-          class="mx-auto"
-          max-width="400"
-        >
-          <v-row
-            class="mx-auto"
-            dense
-          >
-            <v-col
-              v-for="[link, text, icon] in links"
-              :key="link"
-              cols="12"
-              sm="6"
-            >
-              <v-btn
-                :href="link"
-                block
-                depressed
-                target="_blank"
+  <v-card height="100%" width="100%">
+    <v-app-bar app dark dense tile class="pa-0">
+      <v-toolbar-title class="ml-2 mt-n1 mr-1 font-weight-black">
+        My Holochain Applications
+      </v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-tooltip bottom>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+            icon
+            @click="myappDrawerOpen = true"
+            dark
+            v-bind="attrs"
+            v-on="on">
+            <v-icon>mdi-application-import</v-icon>
+          </v-btn>
+        </template>
+        <span>Install a new Holochain Application</span>
+      </v-tooltip>
+      <agent />
+    </v-app-bar>
+    <v-container>
+      <v-row no-gutters>
+        <v-col md="3" sm="3" xs="12">
+          <v-card outlined>
+            <v-card-title>Categories</v-card-title>
+            <v-divider></v-divider>
+            <v-treeview :items="happCategories" :selected-color="'#fff'" activatable open-on-click dense>
+              <template v-slot:label="{ item }">
+                <span
+                  v-if="item.children === undefined"
+                  @click.stop="selectCategory(item)"
+                >
+                  {{ item.name }}
+                </span>
+                <span v-else>
+                  {{ item.name }}
+                </span>
+              </template>
+            </v-treeview>
+          </v-card>
+        </v-col>
+        <v-col md="9" sm="6" xs="12">
+          <v-row no-gutters>
+            <v-col class="pl-3" md="4" sm="6" xs="12" :key="happ.uuid" v-for="happ in categoryHapps">
+              <v-card
+                class="mx-auto"
+                outlined
+                tile
+                max-width="600"
+                elevation="5"
+                to="/builder/organisations"
               >
-                <v-icon
-                  left
-                  v-text="icon"
-                />
-
-                {{ text }}
-              </v-btn>
+                <v-img
+                  class="white--text align-end"
+                  :aspect-ratio="16/9"
+                  height="200px"
+                  cover
+                  :src="happ.preview"
+                >
+                </v-img>
+                <v-divider></v-divider>
+                <v-card-title>
+                  {{happ.name}}
+                </v-card-title>
+              </v-card>
             </v-col>
           </v-row>
-        </v-responsive>
-      </v-col>
-
-      <v-col cols="12">
-        <h2 class="body-2 font-weight-black">
-          Preset Features
-        </h2>
-
-        <v-responsive
-          class="mx-auto my-4"
-          max-width="60"
-        >
-          <v-divider />
-        </v-responsive>
-
-        <v-responsive
-          class="mx-auto"
-          max-width="600"
-        >
-          <v-row
-            class="mx-auto my-4"
-            justify="center"
-          >
-            <v-col
-              v-for="[text, icon, color] in features"
-              :key="text"
-              class="text-center d-inline-flex justify-center flex-wrap"
-              cols="6"
-              sm="4"
-              md="3"
-            >
-              <v-icon
-                :color="color"
-                class="mb-1"
-                size="56"
-                v-text="icon"
-              />
-
-              <div
-                class="col col-12 overline grey--text text--darken-4"
-                v-text="text"
-              />
-            </v-col>
-          </v-row>
-        </v-responsive>
-      </v-col>
-    </v-row>
-  </v-container>
+        </v-col>
+      </v-row>
+    </v-container>
+    <v-navigation-drawer
+      v-model="myappDrawerOpen"
+      fixed
+      dark
+      class="overflow-visible pa-0"
+      right
+      :width="this.$vuetify.breakpoint.lgAndUp ? 1200 : 1000"
+    >
+      <v-card class="fill-height">
+        <v-system-bar window dark>
+          <span>Install a Holochain Application</span>
+          <v-spacer></v-spacer>
+          <v-icon v-if="shop === false" @click="shop = true">mdi-store-outline</v-icon>
+          <v-icon @click="myappDrawerOpen = false;shop = true">mdi-close</v-icon>
+        </v-system-bar>
+        <happ-store v-if="shop" @show-happ="showHapp"/>
+        <happ v-else :happ="selectedHapp"/>
+      </v-card>
+    </v-navigation-drawer>
+  </v-card>
 </template>
-
 <script>
+import { mapState } from 'vuex'
 export default {
   name: 'Home',
-
+  components: {
+    Agent: () => import('@/components/Agent.vue'),
+    Happ: () => import('@/components/happStore/Happ.vue'),
+    HappStore: () => import('@/components/happStore/HappStore.vue')
+  },
   data: () => ({
-    features: [
-      ['Routing', 'mdi-road-variant', 'blue-grey'],
-      ['Vuetify ESLint', 'mdi-auto-fix', 'deep-purple accent-4'],
-      ['SASS', 'mdi-sass', 'pink'],
-      ['Base Components', 'mdi-cube-scan', 'indigo'],
-      ['View Layouts', 'mdi-view-grid-outline', 'orange'],
-      ['Webfont Loader', 'mdi-format-size', 'green accent-4']
-    ],
-    links: [
-      ['//github.com/vuetifyjs/vuetify', 'Github', 'mdi-github-circle'],
-      ['//vuetifyjs.com', 'Documentation', 'mdi-file-document'],
-      ['//community.vuetifyjs.com', 'Community', 'mdi-account-multiple'],
-      ['//github.com/users/johnleider/sponsors', 'Support Vuetify', 'mdi-vuetify']
-    ]
-  })
+    myappDrawerOpen: false,
+    shop: true,
+    selectedCategory: 1
+  }),
+  computed: {
+    ...mapState('myApplications', ['happs', 'happCategories']),
+    categoryHapps () {
+      return this.happs.filter(p => p.category === this.selectedCategory)
+    }
+  },
+  methods: {
+    showHapp (happ) {
+      this.selectedHapp = { ...happ }
+      this.shop = false
+    },
+    selectCategory (category) {
+      this.selectedCategory = category.id
+    }
+  },
+  watch: {
+    filter (val) {
+      this.selectedCategory = val.categoryId
+    }
+  }
 }
 </script>

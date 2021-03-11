@@ -21,15 +21,7 @@
             </v-list-item-content>
           </v-list-item>
           <v-divider></v-divider>
-          <v-list-item href="http://localhost:50001/personas">
-            <v-list-item-icon>
-              <v-icon>mdi-account</v-icon>
-            </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title>My Personas</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-          <v-list-item href="http://localhost:50001/my-apps">
+          <v-list-item to="/">
             <v-list-item-icon>
               <v-icon>mdi-application</v-icon>
             </v-list-item-icon>
@@ -37,12 +29,12 @@
               <v-list-item-title>My Apps</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item href="http://localhost:50001/my-invites">
+          <v-list-item to="/personal-info">
             <v-list-item-icon>
-              <v-icon>mdi-account-arrow-left-outline</v-icon>
+              <v-icon>mdi-account</v-icon>
             </v-list-item-icon>
             <v-list-item-content>
-              <v-list-item-title>My Invites</v-list-item-title>
+              <v-list-item-title>My Personal Info</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </v-list>

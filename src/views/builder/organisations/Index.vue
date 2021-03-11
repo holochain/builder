@@ -88,6 +88,19 @@
                 </template>
                 <span>Open Organisation Details</span>
               </v-tooltip>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    @click="showMembers(organisation)"
+                    dark
+                    v-bind="attrs"
+                    v-on="on">
+                    <v-icon>mdi-account-multiple-outline</v-icon>
+                  </v-btn>
+                </template>
+                <span>Show Members of this Organisation</span>
+              </v-tooltip>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -169,6 +182,7 @@ export default {
     ...mapMutations('builderOrganisations', ['setOrganisation']),
     openOrganisationDetails (org) {
       this.orgProfile = { ...org }
+      console.log(this.orgProfile)
       this.action = 'update'
       this.orgDrawerOpen = true
     },
@@ -197,6 +211,10 @@ export default {
       this.changeOrganisation(organisation)
       this.setOrganisation(organisation)
       this.$router.push('/builder/kanban')
+    },
+    showMembers (organisation) {
+      this.changeOrganisation(organisation)
+      this.setOrganisation(organisation)
     }
   },
   watch: {

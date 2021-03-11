@@ -11,7 +11,7 @@ admin_interfaces:
         type: websocket
         port: 22799
 network:
-  bootstrap_service: "https://bootstrap.holo.host"
+  bootstrap_service: "https://bootstrap-staging.holo.host"
   transport_pool:
     - type: proxy
       sub_transport:
