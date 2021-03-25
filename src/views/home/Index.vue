@@ -103,7 +103,7 @@ export default {
   data: () => ({
     myappDrawerOpen: false,
     shop: true,
-    selectedCategory: 1
+    selectedCategory: 4
   }),
   computed: {
     ...mapState('myApplications', ['happs', 'happCategories']),

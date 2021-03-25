@@ -685,7 +685,7 @@ io.on('connection', socket => {
       }
     )
     const builderRootDir = `${__dirname.replace('socket', '')}`
-    const createInviteCmd = `cd ${builderDnaDir} && grep -rl --exclude-dir={node_modules,target,tests,zomes} 'uuid: organisation.uuid' . | xargs sed -i "" 's/uuid: organisation.uuid/uuid: ${organisation.uuid}/g' && hc dna pack builder_kanban && hc dna pack tagger && hc app pack . && mv ${builderRootDir}/dna.happ ${orgInvitePackageDir}/dna.happ && cd ${orgInvitePackageDir} && tar -cvzf invite.tar.gz .`
+    const createInviteCmd = `cd ${builderDnaDir} && grep -rl --exclude-dir={node_modules,target,tests,zomes} 'uuid: organisation.uuid' . | xargs sed -i "" 's/uuid: organisation.uuid/uuid: ${organisation.uuid}/g' && hc dna pack builder_kanban && hc dna pack tagger && hc app pack . && mv ${builderDnaDir}/builder.happ ${orgInvitePackageDir}/builder.happ && cd ${orgInvitePackageDir} && tar -cvzf invite.tar.gz .`
       const inviteCreator = spawn(createInviteCmd, { shell: true })
       inviteCreator.stderr.on('data', function (err) {
         console.log('CREATE_INVITE_PACKAGE_ERROR', err.toString())
@@ -695,7 +695,7 @@ io.on('connection', socket => {
       })
       inviteCreator.on('exit', function () {
         console.log('CREATE_INVITE_PACKAGE_EXIT', orgInvitePackageDir)
-        callback(`${orgInvitePackageDir}/dna.happ`)
+        callback(`${orgInvitePackageDir}/builder.happ`)
       })
   })
 

@@ -7,9 +7,9 @@ dpki: ~
 keystore_path: ~
 passphrase_service: ~
 admin_interfaces:
-    - driver:
-        type: websocket
-        port: 22799
+  - driver:
+      type: websocket
+      port: 22799
 network:
   bootstrap_service: "https://bootstrap-staging.holo.host"
   transport_pool:
@@ -30,3 +30,4 @@ network:
     tls_in_mem_session_storage: 512
     proxy_keepalive_ms: 120000
     proxy_to_expire_ms: 300000
+  network_type: quic_bootstrap

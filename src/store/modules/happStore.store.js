@@ -16,16 +16,20 @@ export default {
       },
       {
         id: 2,
+        name: 'Social'
+      },
+      {
+        id: 3,
         name: 'Project Management'
       },
       {
         id: 4,
-        name: 'Social'
+        name: 'Developer'
       }
     ],
     happs: [
       {
-        category: 2,
+        category: 3,
         uuid: 'd28d96a7-8e0d-4fac-8c02-626366b2f7ad',
         name: 'Kanban',
         preview: require('../../assets/img/shop/recursive4.png'),
@@ -55,7 +59,7 @@ export default {
         plugin: 'vue-cli-plugin-holochain-module-notes'
       },
       {
-        category: 4,
+        category: 2,
         uuid: '499d811d-530c-4f95-8576-438ab7e0c1ea',
         name: 'Elemental Chat',
         price: '1000',
@@ -72,6 +76,23 @@ export default {
       },
       {
         category: 4,
+        uuid: 'ae916269-b80f-49fa-b759-c45502486793',
+        name: 'Builder',
+        price: '1000',
+        route: '/builder',
+        description: 'Builder IDE is a Code Editor with a set of menu items for quickly creating your very own Holo Applications. Choose from a range of base projects that are complete functioning Holo apps to get you started. Then add extra functionality with complete modules. You can also add new layouts, views & entry types. Builder also comes with its own Developer Holochain conductor where you can add Demo Agents and install your new DNA for each Agent. You can also lint your files and run DNA tests right from the menu.',
+        developerDescription: 'The Holochain app dev team\'s core focus is building high quality applications, modules and processes for Holo & Holochain. Always on the bleeding edge of Holochain the app dev team is continuously improving, automating & using their own applications.',
+        preview: require('@/assets/img/shop/builder1.png'),
+        screens: [
+          require('@/assets/img/shop/builder1.png'),
+          require('@/assets/img/shop/builder2.png'),
+          require('@/assets/img/shop/builder3.png'),
+          require('@/assets/img/shop/builder5.png')
+        ],
+        developer: 'Holochain'
+      },
+      {
+        category: 3,
         uuid: '1969c523-1fb0-476f-85b4-62ef0cab0819',
         name: 'Ledger',
         price: '1000',

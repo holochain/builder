@@ -4,7 +4,7 @@ import Dexie from 'dexie'
 import * as base64 from 'byte-base64'
 import { AppWebsocket } from '@holochain/conductor-api'
 
-const HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
+const PRODUCTION_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_PRODUCTION_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
 
 Vue.use(Vuex)
 
@@ -46,7 +46,7 @@ export default {
       state.db.version(2).stores({
         tags: 'uuid,tagText,organisationUuid'
       })
-      AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
+      AppWebsocket.connect(`ws://localhost:${PRODUCTION_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
         .then(socket => {
           commit('hcClient', socket)
           if (localStorage.getItem('currentOrganisationUuid')) {

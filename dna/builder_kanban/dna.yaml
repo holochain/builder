@@ -1,7 +1,7 @@
 ---
 manifest_version: "1"
 name: builder_kanban
-uuid: 548464e6-4f25-4fea-b531-9ba2e0ee8c67
+uuid: 5ccd485f-ed63-4ce3-82e4-d86fa1dbb93d
 properties: ~
 zomes:
   - name: builder_kanban

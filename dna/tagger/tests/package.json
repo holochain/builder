@@ -17,7 +17,7 @@
     "uuidv4": "^6.2.3"
   },
   "devDependencies": {
-    "@holochain/tryorama": "/Users/philipbeadle/holochain/tryorama",
+    "@holochain/tryorama": "^0.4.1",
     "@types/lodash": "^4.14.158",
     "@types/node": "^14.0.14"
   }

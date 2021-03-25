@@ -8,12 +8,12 @@
     "builder": "vue-cli-service serve --port 5200",
     "postinstall": "cd socket && yarn install",
     "start": "nf start",
-    "start:nix": "nix-shell https://holochain.love --run 'nf start'"
+    "start:nix": "nix-shell https://nightly.holochain.love --run 'nf start'"
   },
   "main": "background.js",
   "dependencies": {
     "@gitgraph/js": "^1.3.5",
-    "@holochain/conductor-api": "/Users/philipbeadle/holochain/holochain-conductor-api",
+    "@holochain/conductor-api": "^0.0.1",
     "byte-base64": "^1.1.0",
     "core-js": "^3.6.5",
     "dexie": "^3.0.3",

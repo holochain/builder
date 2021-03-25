@@ -8,9 +8,9 @@ slots:
       strategy: create
       deferred: false
     dna:
-      bundled: builder_kanban.dna
+      bundled: builder_kanban/builder_kanban.dna
       properties: ~
-      uuid: 548464e6-4f25-4fea-b531-9ba2e0ee8c67
+      uuid: 5ccd485f-ed63-4ce3-82e4-d86fa1dbb93d
       version: ~
       clone_limit: 0
   - id: tagger
@@ -18,8 +18,8 @@ slots:
       strategy: create
       deferred: false
     dna:
-      bundled: tagger.dna
+      bundled: tagger/tagger.dna
       properties: ~
-      uuid: 548464e6-4f25-4fea-b531-9ba2e0ee8c67
+      uuid: 5ccd485f-ed63-4ce3-82e4-d86fa1dbb93d
       version: ~
       clone_limit: 0

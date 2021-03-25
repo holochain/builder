@@ -7,6 +7,10 @@ import io from 'socket.io-client'
 import { AdminWebsocket } from '@holochain/conductor-api'
 import DiffMatchPatch from 'diff-match-patch'
 
+const DEV_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT = process.env.VUE_APP_DEV_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT
+const DEV_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_DEV_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
+const DEV_CONDUCTOR_APP_INTERFACE_PORT = process.env.VUE_APP_DEV_CONDUCTOR_APP_INTERFACE_PORT
+
 Vue.use(Vuex)
 
 export default {
@@ -243,9 +247,9 @@ export default {
       state.socket.on('CONDUCTOR_RUNNING', data => {
         if (data) {
           commit('conductorRunning', true)
-          AdminWebsocket.connect(process.env.VUE_APP_HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL, 10000).then(admin => {
+          AdminWebsocket.connect(`ws://localhost:${DEV_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT}`, 10000).then(admin => {
             state.hcAdmin = admin
-            state.hcClient.port = process.env.VUE_APP_HOLOCHAIN_APP_INTERFACE_DOCKER_PORT
+            state.hcClient.port = DEV_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
           })
           commit('conductorMessage', 'Reconnected')
         } else {
@@ -256,10 +260,10 @@ export default {
         console.log('CONDUCTOR_STDOUT', data)
         if (data.includes('Conductor ready')) {
           commit('conductorRunning', true)
-          AdminWebsocket.connect(process.env.VUE_APP_HOLOCHAIN_ADMIN_SOCKET_DOCKER_URL, 10000).then(admin => {
+          AdminWebsocket.connect(`ws://localhost:${DEV_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT}`, 10000).then(admin => {
             state.hcAdmin = admin
-            state.hcAdmin.attachAppInterface({ port: parseInt(process.env.VUE_APP_HOLOCHAIN_APP_INTERFACE_PORT) }).then(() => {
-              state.hcClient.port = parseInt(process.env.VUE_APP_HOLOCHAIN_APP_INTERFACE_DOCKER_PORT)
+            state.hcAdmin.attachAppInterface({ port: parseInt(DEV_CONDUCTOR_APP_INTERFACE_PORT) }).then(() => {
+              state.hcClient.port = parseInt(DEV_CONDUCTOR_APP_INTERFACE_DOCKER_PORT)
             })
           })
         }
@@ -963,9 +967,10 @@ export default {
       //  });
     },
     async saveAgent ({ state, commit }, payload) {
-      const agent = { ...payload.agent, parent: payload.conductor.uuid }
+      const action = payload.action
+      const agent = payload.agent
       state.db.agents.put(agent).then(() => {
-        if (payload.action === 'create') {
+        if (action === 'create') {
           commit('createAgent', agent)
           console.log('createAgent', agent)
         } else {

@@ -147,7 +147,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('builderDeveloper', ['conductor', 'agents'])
+    ...mapState('builderDeveloper', ['agents'])
   },
   methods: {
     ...mapActions('builderDeveloper', ['fetchAgents', 'saveAgent', 'deleteAgent']),
@@ -160,7 +160,6 @@ export default {
     save () {
       this.saveAgent({
         action: this.action,
-        conductor: this.conductor,
         agent: this.actionAgent
       }).then(() => this.reset())
     },

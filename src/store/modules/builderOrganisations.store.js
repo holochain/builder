@@ -6,8 +6,8 @@ import Dexie from 'dexie'
 import * as base64 from 'byte-base64'
 import { AppWebsocket, AdminWebsocket } from '@holochain/conductor-api'
 
-const HOLOCHAIN_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT = process.env.VUE_APP_HOLOCHAIN_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT
-const HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
+const PRODUCTION_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT = process.env.VUE_APP_PRODUCTION_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT
+const PRODUCTION_CONDUCTOR_APP_INTERFACE_DOCKER_PORT = process.env.VUE_APP_PRODUCTION_CONDUCTOR_APP_INTERFACE_DOCKER_PORT
 
 Vue.use(Vuex)
 
@@ -37,13 +37,13 @@ export default {
   },
   actions: {
     initialise ({ state, commit, dispatch }) {
-      AdminWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT}`)
+      AdminWebsocket.connect(`ws://localhost:${PRODUCTION_CONDUCTOR_ADMIN_INTERFACE_DOCKER_PORT}`)
         .then(socket => {
           commit('hcAdmin', socket)
           dispatch('fetchOrganisationMembers')
         })
         .catch(err => console.log('hcAdmin', err))
-      AppWebsocket.connect(`ws://localhost:${HOLOCHAIN_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
+      AppWebsocket.connect(`ws://localhost:${PRODUCTION_CONDUCTOR_APP_INTERFACE_DOCKER_PORT}`)
         .then(socket => {
           commit('hcClient', socket)
         })
@@ -145,7 +145,7 @@ export default {
     installDnas ({ state, commit, dispatch }, payload) {
       const organisation = payload.organisation
       localStorage.setItem('currentOrganisationUuid', organisation.uuid)
-      let happPath = '/Users/philipbeadle/holochain/builder/dna.happ'
+      let happPath = '/Users/philipbeadle/holochain/builder/dna/builder.happ'
       if (payload.happPath !== undefined) {
         happPath = payload.happPath
       }

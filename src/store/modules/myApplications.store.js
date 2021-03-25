@@ -16,16 +16,20 @@ export default {
       },
       {
         id: 2,
+        name: 'Social'
+      },
+      {
+        id: 3,
         name: 'Project Management'
       },
       {
         id: 4,
-        name: 'Social'
+        name: 'Developer'
       }
     ],
     happs: [
       {
-        category: 1,
+        category: 4,
         uuid: 'ae916269-b80f-49fa-b759-c45502486793',
         name: 'Builder',
         route: '/builder/organisations',

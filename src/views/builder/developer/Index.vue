@@ -71,7 +71,7 @@
                 resetConductor();
                 clearCommits().then(() => getStatus({ name: application.name }));
                 terminalTab = 0;
-                reinstallNodeModules({ name: applicationName });"
+                reinstallNodeModules({ name: application.name });"
               :key="`${application.name}application`"
               class="pl-10"
             >
